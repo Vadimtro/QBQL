@@ -1,0 +1,7 @@
+x v y = y v x.
+(x v y) v z = x v (y v z).
+x = (x' v y)' v (x' v y')'.
+--------------------------
+(x')' = x.
+--x v x' = y v y'.
+--(x v y) v z = x v (y v z).

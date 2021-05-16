@@ -1,0 +1,12 @@
+-- Relational lattice instance from the Figure 1
+-- http://arxiv1.library.cornell.edu/pdf/0807.3795
+-- Attributes are renamed: x -> p, y -> q, z -> r, because 
+-- elsewhere x, y, and z are relation variables!
+
+O=[]
+;
+A=[p]
+;
+B=[p]
+   1
+;

@@ -1,0 +1,115 @@
+atomic_predicate:
+    '[' node ')' identifier      -- node content; grammar non-terminal
+  | '[' node ')' string_literal  -- node content; grammar terminal
+  | node '<' node                -- ancestor < descendant (DOB, consistent with node^, \/node, /\node ) 
+  | node '<' '=' node            -- reflexive: ancestor <= descendant  
+  | node_position '<' node_position  --   
+  | node_position '<' '=' node_position  --   
+  | node_position '<' bind_var  --  
+  | node_position '<' '=' bind_var  --  
+  | bind_var '<' node_position  --  
+  | bind_var '<' '=' node_position  --  
+  | node '=' node                   -- 
+  | '?' node '=' '?' node
+  | '?' node '=' string_literal
+  | '!' atomic_predicate
+;
+
+bind_var: 
+    ':' identifier
+;
+
+node : identifier
+     | node_parent
+     | node_predecessor
+     | node_successor
+     | referenced_node
+;
+
+
+node_parent:
+  node '^' 
+;
+
+node_position:
+    '[' node
+  | node ')'
+;
+
+node_predecessor:
+  node '-' '1'
+;
+
+node_successor:
+  node '+' '1'
+;
+
+program:
+    statement
+  | program statement
+;
+
+predicate: 
+             identifier
+          |  atomic_predicate 
+          |  predicate '&' predicate  -- result with attributes union
+          |  predicate '|' predicate  -- result with attributes intersection
+          |  predicate '-' predicate  -- result with attributes of first argument
+          |  '(' predicate ')'
+          |  aggregate_operator
+          |  '[' header ']'
+          |  '[' ']'
+;
+
+attribute:   identifier
+          /*|  identifier '.' identifier
+          |  identifier '^' 
+          |  identifier '^' '^'*/
+;
+header:      attribute
+          |  header attribute
+          |  header ',' attribute
+;
+
+
+referenced_node:
+      identifier '.' identifier       -- attribute in named predicate
+    -- | referenced_node '.' identifier  -- deeper nesting
+;
+
+statement:
+    rule
+  | output 
+;
+
+rule:
+  identifier ':' predicate ';'
+;
+output:
+  identifier ';'
+;
+
+
+aggregate_operator:
+  '\' '/' identifier '(' predicate ')'     -- The node containing other nodes
+                                           -- [[   )  )
+                                           -- ^       ^
+|
+  '/' '\' identifier '(' predicate ')'     -- The node contained within
+                                           -- [[[   )  ) )
+                                           --   ^   ^
+|
+  '/' '/' identifier '(' predicate ')'     -- The oldest node 
+                                           -- [   )[   )
+                                           --      ^   ^        										
+;
+
+lower_bound_aggregate_operator:
+  '/' '\' identifier '(' predicate ')'     -- The node with earliest DOD (and latest DOB for tie breaking):    										
+                                           -- [[   )  )
+                                           --      ^        										
+                                           -- [   )[   )
+                                           --     ^         										
+;
+  
+

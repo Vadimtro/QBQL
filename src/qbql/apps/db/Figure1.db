@@ -1,0 +1,119 @@
+-- Relational lattice instance from the Figure 1
+-- http://arxiv1.library.cornell.edu/pdf/0807.3795
+-- Attributes are renamed: x -> p, y -> q, z -> r, because 
+-- elsewhere x, y, and z are relation variables!
+
+"p->q"=[p  q  r]
+   0  a  0
+   0  a  1
+   1  c  0
+   1  c  1
+   2  a  0
+;
+
+
+"[p]"=[p]
+;
+"[p]1"=[p]
+    1
+;
+"[p]12"=[p] 
+   1
+   2
+;
+"[q]"=[q]
+;
+"[q]a"=[q]
+   a
+;
+"[q]a b"=[q]
+   a
+   b
+;
+
+"[r]0" =  [r] 0;
+"[r]" = [r];
+
+JAC = "[p]1" ^ "[q]a";
+
+JAD = "[p]1" ^ "[q]a b";
+
+JBC = "[p]12" ^ "[q]a";
+
+ADvBC = ("[p]1" ^ "[q]a b") v ("[p]12" ^ "[q]a");
+
+-- Additional relations (beyond the scope of Figure 1)
+
+"[p]0" = [p] 0;
+"[p]2" = [p] 2;
+P02 = [p] 0 2;
+P01 = [p] 0 1;
+P012 = [p] 0 1 2;
+		
+Qb = [q] b;
+Qc = [q] c;
+Qbc = [q] b c;
+Qabc = [q] a b c;
+
+
+/*
+PR000110=[p  r]
+   0  0
+   0  1
+   1  0
+;
+PR0010=[p  r]
+    0  0
+    1  0
+;
+*/
+
+"[p r]" = [p r]
+;
+"[p=r]" = [p r]     
+           0 0
+           1 1
+           2 2
+;
+  
+
+"[p<r]" = [p r]     
+           0 0
+           0 1
+           0 2
+           1 1
+           1 2
+           2 2
+;
+
+"[q r]" = [q r]
+;
+"[q r]a0" = [q r]
+      a 0
+;
+"[q r]b0" = [q r]
+      b 0
+;
+"[q r]a0b0" = [q r]
+      a 0
+      b 0
+;
+"[q r]a0b0a1" = [q r]
+      a 0
+      b 0
+      a 1
+;
+"[q r]a0b0a1b1" = [q r]
+      a 0
+      b 0
+      a 1
+      b 1
+;
+
+
+"[p q]" = [p q]
+;
+
+
+
+       

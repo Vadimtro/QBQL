@@ -1,0 +1,59 @@
+ABC = [m  _s]
+       a "{a,b,c}"
+       b "{a,b,c}"
+       c "{a,b,c}"
+;
+AB = [m  _s]
+      a "{a,b}"
+      b "{a,b}"
+;
+A = [m  _s]
+     a "{a}"
+;
+B = [m  _s]
+     b "{b}"
+;
+C = [m  _s]
+     c "{c}"
+;
+BC = [m  _s]
+      c "{b,c}"
+      b "{b,c}"
+;
+_A_ = [m  _s]
+       "{a}" "{{a}}"
+;
+_AB_ = [m  _s]
+       "{a,b}" "{{a,b}}"
+;
+_AB_ = [m  _s]
+       "{a,b}" "{{a,b}}"
+;
+_A_AB_ = [m  _s]
+       "{a,b}" "{{a},{a,b}}"
+       "{a}"   "{{a},{a,b}}"
+;
+A_AB_ = [m  _s]
+       "{a,b}" "{a,{a,b}}"
+        a      "{a,{a,b}}"
+;
+Circular = [m     _s]
+            "{{...}}" "{{...}}"
+;
+BiCircular = [m     _s]
+--              p      p
+              q      p
+              p      q
+--              q      q
+;
+Sets = ABC v AB v A v B v C v BC;
+AllSets = ABC v AB v A v B v C v BC v _A_ v _AB_ v _A_AB_ v A_AB_ v Circular v BiCircular;
+
+EmptySet = [_s] "{}";
+
+Sets1 = Sets /^ [_s=s1];
+
+-- to build R11 correctly:
+--S1=(Sets v EmptySet) /^ [_s=s1];
+--S2=(Sets v EmptySet) /^ [_s=s2];
+--M1=Sets v [m] /^ [m=m1];

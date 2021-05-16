@@ -1,0 +1,85 @@
+P = [p];
+Q = [q];
+R = [r];
+
+FD=[p  q  r]
+    0  a  0  
+    1  a  1 
+;
+
+MVD=[p  q  r]
+     0  a  0  
+     0  a  1  
+     0  b  0  
+     0  b  1  
+     1  a  0 
+;
+
+/**/AliceP129=[p  q  r]
+   0  c  1
+   1  c  2
+   1  c  0
+;
+
+PQ = [p q];
+QR = [q r];
+RP = [r p];
+
+
+FD1=[p  q  r ]
+   0  a  0  
+   0  a  1  
+   1  c  0  
+   1  c  1  
+   2  a  0  
+;
+
+"...."=[p  q  r ]
+   0  a  0  
+   0  a  1  
+   1  c  0  
+   1  c  1  
+   2  a  0
+   3  a  1  
+;
+
+"....."=[p  q  r ]
+   0  a  0  
+   0  a  1  
+   1  c  0  
+;
+
+
+
+ --Alice p.171 remapped: 
+SDT = [q  s   p   r]
+       c  s   0   0
+       c  s   0   1
+       c  s   0   2
+       c  l   1   2
+       b  s   2   0
+       b  s   2   2
+       a  l   3   2
+;
+S = [s];
+PS = [p s];
+QS = [q s];
+RS = [r s];
+
+SDT1= [q  s   p   r]
+       c  s   0   0
+       c  s   0   1
+       b  s   2   2
+       a  l   3   2
+;
+
+
+
+MaierP137=[p  q  r] 
+           0  a  0 
+           0  b  1 
+           1  c  2 
+           2  c  3 
+           3  d  4 
+           4  e  4 
+;/**/

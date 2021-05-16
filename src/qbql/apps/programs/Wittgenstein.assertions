@@ -1,0 +1,20 @@
+/*
+(NamedBlocks ^ D) v Size = Large.
+
+(NamedBlocks ^ A) v Size = Small.
+
+(NamedBlocks ^ C) v Shape = Cube. 
+
+(NamedBlocks ^ C) v Shape = Cube & C = B -> (Blocks ^ A) v Shape = Cube.
+------------------------------FALSE! because C and B are constants, not variables
+
+
+((NamedBlocks ^ A) v Size) ^ ((Blocks ^ C) v Shape) = Small ^ Cube.
+
+(NamedBlocks ^ D) v (Size ^ Shape) = Large ^ Cube -> (Blocks ^ D) v Size = Large.
+*/
+
+Blocks < Sizes. -- conditional:
+Blocks /^ Sizes = Blocks v Sizes`.
+Blocks /> Sizes = Blocks /= Sizes.
+Blocks /> Sizes = ( (Blocks' ^ Sizes) * Sizes` )'.

@@ -1,0 +1,13 @@
+eclipse.preferences.version=1
+encoding//src/qbql/apps/programs/current.prg=UTF-8
+encoding//src/qbql/apps/programs/dependency.qbql=UTF-8
+encoding//src/qbql/apps/udf.def=UTF-8
+encoding//src/qbql/induction/ExprGen.java=UTF-8
+encoding//src/qbql/induction/induction.prg=UTF-8
+encoding//src/qbql/lang/Count.java=UTF-8
+encoding//src/qbql/lang/Sum.java=UTF-8
+encoding//src/qbql/lattice/Expr.java=UTF-8
+encoding//src/qbql/lattice/Relation.java=UTF-8
+encoding//src/qbql/lattice/lattice.grammar=UTF-8
+encoding//src/qbql/parser/Lex.java=UTF-8
+encoding//src/qbql/program/current.prg=UTF-8

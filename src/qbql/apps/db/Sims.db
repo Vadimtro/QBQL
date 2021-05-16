@@ -1,0 +1,125 @@
+/*
+People = {
+  max sex=male
+  peter sex=male
+  joe sex=male
+  claire sex=female>
+};
+
+Pets = {
+  <nickname=folly specie=dog
+  <nickname=scruffy specie=cat>
+};
+
+Time = {
+  <time=dummy>
+} ^ R00 ;
+
+Fed = {
+  max nickname=folly time=200
+  claire nickname=folly time=200
+  max nickname=folly time=300
+  max nickname=scruffy time=200>
+};
+
+
+
+Male = {
+  <sex=male>
+};
+
+
+Folly = {
+  <nickname=folly>
+};
+
+Scruffy = {
+  <nickname=scruffy>
+};
+
+TwoOclock = {
+  <time=200>
+};
+
+ThreeOclock = {
+  <time=300>
+};
+
+
+
+
+Parent = {
+  peter relationship=peterFatherMax>
+};
+
+Child = {
+  max relationship=peterFatherMax>
+};
+
+Relationship = {
+  <relationship=dummy>
+} ^ R00;
+
+
+
+Requirements2 = {
+  <job=entry skill=java>
+};
+*/
+
+Certified=[name  skill]
+           claire  java
+           max  java
+           max  sql
+           peter  html
+           peter  java
+;
+Requirements=[job  skill]
+              appl  java
+              appl  sql
+              web  java
+              web  html
+              QA  sql
+;
+
+Certified ^ Requirements;
+
+Claire = [name] claire
+;
+
+Peter = [name] peter
+;
+
+Max = [name] max
+;
+
+At = [name location time]
+  peter    library    200
+  max      home       200
+  claire   library    200
+  max      home       300
+  claire   library    300
+  max      library    400
+  claire   home       400
+  max      library    500
+  claire   library    500
+;
+
+Fed = [person pet     time]
+       max    folly   200
+       claire folly   200
+       max    folly   300
+       max    scruffy 200
+;
+
+Home = [location] home
+;
+
+Library = [location] library
+;
+
+
+Max /^ At /^ Home < Claire /^ At /^ Library.
+
+(At ^ [name] max ^ [time] 200) v [location];
+

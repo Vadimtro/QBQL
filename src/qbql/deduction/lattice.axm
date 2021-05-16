@@ -1,0 +1,8 @@
+--x ^ y = y ^ x.
+--(x ^ y) ^ z = x ^ (y ^ z).
+x ^ (x v y) = x.
+--x v y = y v x.
+--(x v y) v z = x v (y v z).
+x v (x ^ y) = x.
+-------------------------
+x v x = x.

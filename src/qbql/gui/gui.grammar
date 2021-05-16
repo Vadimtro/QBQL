@@ -1,0 +1,24 @@
+button:      'button' identifier
+          |  'button' string_literal
+;
+codeArea:    'codeArea' identifier
+;
+grid:        '(' nodes ')'
+          |  '(' nodes ')' '/' digits
+;
+input:       'input' identifier
+;
+node:        grid
+          |  widget
+;
+nodes:       node
+          |  nodes ',' node
+;
+padding:     '[' ']'
+          |  '[' digits ']'
+;
+widget:      button
+          |  codeArea
+          |  input
+          |  padding
+;

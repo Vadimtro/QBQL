@@ -1,0 +1,11 @@
+--(x ^ y) v (x ^ z) = x ^ ( ((x v z) ^ y) v ((x v y) ^ z) ).
+
+-- x ^ (y v z) = (x ^ (z v (R00 ^ y))) v (x ^ (y v (R00 ^ z))).
+
+x v y = ((x v y)^R00) v (x' ^ y')'.
+
+
+
+
+
+

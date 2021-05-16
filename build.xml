@@ -1,0 +1,63 @@
+<project name="qbql" basedir="." default="dist">
+
+	<property name="src.dir" value="src" />
+	<property name="bin.dir" value="bin" />
+	<property name="dist.dir" value="dist" />
+	<property name="doc.dir" value="doc" />
+
+	<target name="clean" description="Removes all compiled classes and jar files">
+		<delete dir="${bin.dir}" />
+		<!--delete dir="${dist.dir}" / obstructed svn update--> 
+		<delete dir="${doc.dir}" />
+	</target>
+
+	<target name="compile">
+		<mkdir dir="${bin.dir}" />
+		<javac srcdir="${src.dir}" destdir="${bin.dir}" />
+	</target>
+
+	<!-- Generates javadoc -->
+	<target name="doc" description="Generate the javadoc documentation">
+		<javadoc destdir="${doc.dir}" useExternalFile="yes" author="true" version="true" use="true" package="yes" windowtitle="Property Table API" maxmemory="256m">
+			<fileset dir="${src.dir}/com">
+				<include name="**/*.java" />
+			</fileset>
+		</javadoc>
+	</target>
+
+	<!-- Generates jars -->
+	<target name="dist" depends="clean,compile" description="Generates jars">
+		<mkdir dir="${dist.dir}" />
+		<copy toDir="${bin.dir}">
+					<fileset dir="${src.dir}" />
+				</copy>
+		<jar destfile="${dist.dir}/${ant.project.name}.jar" update="no" compress="true">
+			<fileset dir="${bin.dir}" />
+			<fileset file="BSD License.txt"/>
+			<manifest>
+				<attribute name="Implementation-Title" value="${ant.project.name}" />
+				<attribute name="Implementation-Vendor" value="Vadim Tropashko" />
+				<attribute name="Main-Class" value="qbql.program.Run" />
+				<attribute name="Version" value="1.0" />
+			</manifest>
+		</jar>
+	</target>
+
+	<!-- Generates jars that include javadocs -->
+	<target name="dist with docs" depends="clean,compile,doc" description="Generates jars that include the javadoc documentation">
+		<mkdir dir="${dist.dir}" />
+		<copy toDir="${bin.dir}">
+					<fileset dir="${src.dir}" />
+				</copy>
+		<jar destfile="${dist.dir}/${ant.project.name}.jar" update="no" compress="true">
+			<fileset dir="${bin.dir}" />
+			<fileset file="${doc.dir}" includes="${doc.dir}/**"/>
+			<fileset file="BSD License.txt"/>
+			<manifest>
+				<attribute name="Implementation-Title" value="${ant.project.name}" />
+				<attribute name="Implementation-Vendor" value="Vadim Tropashko" />
+				<attribute name="Version" value="1.0" />
+			</manifest>
+		</jar>
+	</target>
+</project>

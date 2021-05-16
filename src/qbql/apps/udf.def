@@ -1,0 +1,110 @@
+-- "New relational Algebra" 
+-- http://www.dcs.warwick.ac.uk/~hugh/TTM/APPXA.pdf
+-- implemented via user defined operations
+
+TABLE_DUM = R00;
+TABLE_DEE = R01;
+
+x <AND> y = x ^ y.
+x <OR> y = --(x ^ R11) v (y ^ (x v R11)). -- x <OR> (y <OR> z) = (x <OR> y) <OR> z. 73 sec
+        --(R11 ^ y) v (x ^ y) v (x ^ R11). -- 112 sec
+        (x ^ (y v R11)) v (y ^ (x v R11)). -- 43 sec
+        --(x' ^ y')'. -- 70 sec
+        --((R00 ^ x) ^ y) v (R11 ^ y) v (x ^ R11). -- 113 sec
+<NOT> x  = (R11 v x) ^ x'.
+-- <NOT> x = (R11 v (x^R00)) ^ x'. -- same performance   
+-- <NOT> x = (R00 /> x). -- slightly slower (Test.prg 13438 vs. 13125)
+
+x <REMOVE> y = x v y`. -- project relation x onto all attributes except those in y
+                       -- typical usage: EMP <REMOVE> [SAL MGR] 
+        
+-------------------------- More fancy operations -----------------------  
+
+--x <"->"> y = y <OR> <NOT>x.    
+x <"->"> y = (y v x) /< y. 
+x <"1"> y = (x /1 y) ^ x ^ y. 
+        
+x <and> y = --(x ^ R00) v (x ^ y) v (R00 ^ y). -- 4.9 sec R00 ^ (x v y) = R00 ^ (y v z) -> x @* (y @* z) = (x @* y) @* z.
+         (x ^ y) v ((x v y) ^ R00). -- 4.9 sec (compared with join ^ associativity taking 3.7 sec)
+
+/*
+x <FancierJoin> y =  --(y` ^ x`)` ^ (y v x). -- 62
+        --(R00 v (x` ^ y)) ^ (y v x).  -- 19
+        --(R00 v x) ^ ((y` ^ x) v y). -- 20
+        (((R00 v x) ^ y) v R00) ^ (y v x). -- 4.
+
+x @# y = (R11 /= (y /= x))` ^ y.
+x @? y = ((y ^ x)' /^ (y v x))` v y. 
+
+x @/< y = ( (x v y)` @* (x ^ y') )'.
+x @/> y = ( (x v y)` @* (x'^ y) )'.
+*/
+
+--<INV> x  = (R11 ^ x) v x`. 
+<INV>x = (R11 /^ x). -- faster (Test.prg 13156 ms vs. 14156)
+
+
+<COMPL>x = <NOT>(<INV>x).
+
+<CP_CLOSE> x  = x*. -- alias for expression generator where unary operators are prefixed
+<EQ_CLOSE> x  = x+. -- 
+
+x <"and"> y = <NOT>((<NOT>x) v (<NOT>y)).
+
+x <Decomp> y = (x ^ <INV>y) v (x ^ <NOT>y).
+
+--x <plus> y = ....
+--x <mult> y = <NOT>((<NOT>(y) v <NOT>(x))).
+x <mult> y = x <"and"> y.
+
+-- generalized negation
+x <gn> y = (<NOT>x ^ <INV>y) v (<INV>x ^ <NOT>y).
+--x <gn> y = (<NOT>y v <NOT>x) ^ (<INV>y v <INV>x).
+--false:x <gn> x = x.
+--x <gn> y = y <gn> x.
+-- false: x <gn> (y <gn> z) = (x <gn> y) <gn> z.
+--x <gn> R00 = <INV>x.
+--x <gn> R11 = <NOT>x.
+
+-- Generalized negation
+x <Gn> y = <NOT>(<INV>(<NOT>x ^ x) v (<INV>y ^ y)).
+--x <Gn> (x <Gn> x) = <INV>x.
+--(x <Gn> x) <Gn> x = <NOT>x.
+--R00 = ((x <Gn> (x <Gn> x)) ^ x) <Gn> ((x <Gn> x) v x);
+--R11 = (((x <Gn> x) ^ x) <Gn> x) <Gn> ((x <Gn> x) ^ x).
+--x <OR> y = (((y <Gn> x) <Gn> y) ^ x) v (((y <Gn> x) v x) ^ y).
+--x /^ y = ((x <Gn> (y <Gn> y)) ^ (y <Gn> y)) v (y ^ x).
+
+
+x <"/^"> y = --(x v y) <"and"> (<NOT>(x ^ y)).
+             <NOT>(<NOT>(y v x) v (y ^ x)).
+-----------------------------------------------------------------------
+
+"f1 <*> f2 = p" = 
+"exp(r)=f1" /^
+"exp(s)=f2" /^
+"exp(t)=p" /^
+"r+s=t";
+
+
+Substr = 
+(Cat /^ "from=to" /^ "prefix=_1")
+/^
+(Cat /^ "source=_1" /^ "postfix=fragment")
+;
+
+LT = LE ^ ("lft=rgt")'; 
+"lft < rgt" = LT;
+
+/*Id = [p q r]
+0 0 0
+1 1 1
+2 2 2
+a a a
+b b b
+c c c
+;*/
+
+<sq> x = x ⊗ x.
+
+

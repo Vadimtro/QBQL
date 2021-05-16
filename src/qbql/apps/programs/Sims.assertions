@@ -1,0 +1,56 @@
+x = y.
+
+/*Certified /= Requirements;
+
+x /< y = ( (x v y)` * (x ^ y') )'.
+x /= y = ( (x v y)` * ((x'^ y) v (x ^ y')) )'.
+
+
+(Pets ^ Fed) v ((Pets v Fed`)^(Pets` v Fed)^[]) = Pets \|/ Fed. 
+
+(x ^ y) v ((x v y`)^(x` v y)^[]) = x \|/ y.
+
+
+Time v (Claire ^ At ^ Library) > Time v (Max ^ At ^ Home).
+
+Home /\ Max /\ At;
+
+Library /\ At /\ Claire;
+
+At v Time;
+
+(Peter ^ Male) v Max;
+(Peter ^ Male) + Max;
+
+--( project_x(R) /\ project_z(Q) ) \
+--project_xz( (project_x(R) /\ Q ) symm_diff (R /\ project_z(Q) )  ) 
+
+x v R00 = R01 & y v R00 = R01 -> y`*x = (y^R00)` v x.
+(x`*y)^(y`*x) = (x v (y^R00)`) ^ (y v (x^R00)`).
+
+
+
+
+x \/ y = (x ^ y) * (x` + y`).
+x \/ y = (x ^ y) * (x` ^ y`).
+x \/ y = (x ^ y) * (x v y)`. 
+
+x /| y = ( (x v y)` * (x ^ y') )'.
+x |\ y = ( (x v y)` * (x'^ y) )'.
+x /\ y = ( (x v y)` * ((x'^ y) v (x ^ y')) )'.
+
+x = y <-> x /\ y = R01.
+x = y ^ R01 <-> x /\ y = R01.
+x ^ y = x \/ y <-> (x v y)^R00 = R00. 
+
+x /\ (x \/ y) = (x /\ (x \/ (x /\ (x \/ y)))).
+
+(Fed /\ ([name])')';
+(Fed \/ ([name])')';
+
+y v R11 = y & x ^ R00 < y ^ R00 ->  x /|\ y = x \|/ y.
+
+
+x^R00=x & y^R00=y & r#x < r#y  ->
+r = (r v (x^y)) ^ (r v (x^y`)).
+*/

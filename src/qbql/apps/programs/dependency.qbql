@@ -1,0 +1,59 @@
+include "c:/users/dim/git/qbql/src/qbql/apps/db/Figure1.db"; 
+--include "c:/users/dim/git/qbql/src/qbql/apps/db/DependencyTheory.db";
+--include udf.def; 
+
+/*
+x < y <-> x^y =x. 
+
+(R ⊗ R) ^ (x v R) < y v R
+<->
+(R ⊗ R) ^ (x v R) < (R ⊗ R) ^ (y v R).
+
+x ^ y ^ z = R ^ R00 &
+x ^ R00 = x &
+--y ^ R00 = y &
+--z ^ R00 = z &
+--((R v (x ^ y))⊗(R v (x ^ y)))^(R v x) = R v (x ^ y)
+(R ⊗ R) ^ (x v R) < y v R
+->
+R = (R v (x ^ y)) ^ (R v (x ^ z))
+.
+
+((R ⊗ R) ^ (x v R)) ^ (y v R) = (R ⊗ R) ^ (x v R) 
+->
+((R ⊗ R) ^ ((x^z) v R)) ^ ((y^z) v R) = (R ⊗ R) ^ ((x^z) v R).
+*/
+
+/* 
+x != R00    &
+x < R00     &
+y < R00     &
+x v z = R00 &
+r < R2      &
+R2 ^ (x v r) < R2 ^ (y v r) 
+->
+R2 ^ ((x ^ z) v r) < R2 ^ ((y ^ z) v r).
+
+(r ⊗ r) ^ (x v r) < (r ⊗ r)  ^ (y v r) 
+->
+(r ⊗ r)  ^ ((x ^ z) v r) < (r ⊗ r)  ^ ((y ^ z) v r).
+*/
+
+
+/*a v b=[] &
+b v c=[] &
+a v c=[] 
+->
+(a^c)v(((a^b)v r)^( (b^c)v( ((a^c)v r)
+^
+((a^b)v ( ((b^c)v r)^( (a^c)v(((b^c)v r)^((a^b)v r)) ) )) ) ) )
+= 
+(a^c)v( ((a^b)v ( ((b^c)v r)^( (a^c)v(((b^c)v r)^((a^b)v r)) ) ))
+^ 
+( (b^c)v(((a^b)v r)^((a^c)v r)) ) )
+.*/
+
+(z /^ pEp1) /^ pEp1 = z
+->
+((z ^ (z /^ pEp1)) v (pEp1 ^ [])) < pEp1.
+

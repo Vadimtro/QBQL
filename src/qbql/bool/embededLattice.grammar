@@ -1,0 +1,145 @@
+assertion:   implication '.'
+          |  '!' implication '.'  -- negation before unviversal quantification, e.g. -(all x all y x<y <-> x=x).
+;
+
+assignment:  identifier '=' expr ';'
+          |  string_literal '=' expr ';'
+          |  identifier '=' partition ';'
+;
+
+
+conjunction: 
+             conjunction '&' conjunction
+          |  proposition 
+          |  '(' conjunction ')'
+          |   '-' proposition
+;
+
+complement:  identifier 'qtSymbol'
+          |  parExpr 'qtSymbol'
+          |  inverse 'qtSymbol'
+;
+
+content:     value
+          |  content value
+;
+
+
+
+disjunction: 
+             conjunction '|' disjunction
+          |  conjunction 
+          |  '(' disjunction ')'
+;
+
+expr:        complement
+          |  contains
+          |  identifier
+--          |  string_literal
+          |  innerUnion
+          |  inverse
+          |  join
+          |  parExpr
+          |  userDefined
+;
+
+filename:
+           identifier
+         | identifier '.' identifier
+         --| string_literal
+;
+
+header_cs: identifier
+         | header ',' identifier
+;
+header_ss: identifier
+         | header  identifier
+;
+header:      header_cs
+          |  header_ss
+;
+
+implication: 
+             implication '-' '>' implication
+          |  implication '<' '-' implication
+          |  implication '<' '-' '>' implication
+          |  disjunction
+          |  '(' implication ')'
+;
+
+
+innerUnion:  expr 'v' expr
+;
+
+inverse:     identifier '`'
+          |  parExpr '`'
+          |  complement '`'
+;
+
+include: 'include' filename ';'
+;
+
+join:        expr '^' expr
+;
+
+oper:       '^'
+          | 'v'
+          | userOper
+;
+
+
+parExpr:     '(' expr ')'
+;
+
+
+proposition:     
+             "not to confuse with userOper"
+          |  implication
+          |  expr '=' expr
+          |  expr '~' expr
+          |  expr '!' '=' expr
+;
+
+stmts:     stmt  
+          |  stmts stmt 
+;
+
+theorem: stmts '|' '-' stmt
+;
+
+query:       expr ';'
+          |  partition ';'
+;
+
+rename_attr_pair: identifier '/' identifier
+;
+rename:   'rename' rename_attr_pair expr
+;
+
+/*renaming_attr_list: identifier '/' identifier
+          | renaming_attr_list identifier '/' identifier
+;*/
+
+
+
+stmt:        assertion
+          |  assignment
+          |  query
+;
+
+
+
+unaryUserDefined:
+              userOper parExpr 
+           |  userOper unaryUserDefined 
+           |  userOper identifier 
+;
+userDefined:  
+			  unaryUserDefined   -- prefix
+           |  expr userOper expr -- infix
+;
+userOper:  '<' identifier '>'
+          | '<' string_literal '>'
+;
+
+

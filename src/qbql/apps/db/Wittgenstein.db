@@ -1,0 +1,32 @@
+NamedBlocks = {
+  <name=a,shape=tet,size=small>,
+  <name=b,shape=cube,size=small>,
+  <name=c,shape=cube,size=medium>,
+  <name=d,shape=cube,size=large>,
+  <name=e,shape=dodec,size=large>,
+  <name=f,shape=tet,size=large>
+};
+
+Large = {<size=large>};
+Medium = {<size=medium>};
+Small = {<size=small>};
+
+A = {<name=a>};
+B = {<name=b>};
+C = {<name=c>};
+D = {<name=d>};
+
+BlockD = NamedBlocks ^ D;
+
+Size = Large ^ R00;
+
+Cube = {<shape=cube>};
+Tet = {<shape=tet>};
+
+Shape = [shape];
+Size = [size];
+
+ 
+Blocks = NamedBlocks v [shape size];
+
+Sizes = Blocks v Size;

@@ -1,0 +1,258 @@
+almostDisj:  expr '/' '1' expr
+;
+
+assertion:   implication '.'
+          |  '!' implication '.'  -- negation before unviversal quantification, e.g. -(all x all y x<y <-> x=x).
+;
+
+assignment:  identifier '=' expr ';'
+          |  string_literal '=' expr ';'
+          |  identifier '=' partition ';'
+;
+
+big:         expr '/' '!' expr
+;
+
+CPclosure: identifier '*'
+      |  parExpr '*'
+;
+
+composition: '/' '^'
+;
+
+conjunction: 
+             conjunction '&' conjunction
+          |  proposition 
+          |  '(' conjunction ')'
+          |   '-' proposition
+;
+
+complement:  identifier 'qtSymbol'
+          |  parExpr 'qtSymbol'
+;
+
+contains:     expr '/' '<' expr
+;
+
+content:     value
+          |  content value
+;
+
+count:   expr '|' 'v' '|' expr
+;
+
+EQclosure: identifier '+'
+        |  parExpr '+'
+;
+
+
+database:    assignment
+          |  database assignment
+;
+
+difference:  expr '-' expr
+          |  expr 'minus' expr
+;
+
+directProduct:  expr '(' 'x' ')' expr
+             |  expr     '⊗'     expr
+;
+
+disjoint:    expr '/' '0' expr
+;
+
+disjunction: 
+             conjunction '|' disjunction
+          |  conjunction 
+          |  '(' disjunction ')'
+;
+
+expr:        almostDisj
+          |  big
+          |  complement
+          |  contains
+          |  count
+          |  CPclosure
+          |  difference
+          |  directProduct
+          |  disjoint
+          |  EQclosure
+          |  identifier
+          |  string_literal
+          |  innerUnion
+          |  inverse
+          |  join
+          |  parExpr
+          |  project
+          |  relation
+          |  rename
+          |  restrict
+          |  setEQ
+          |  setIX
+          |  table
+          |  transpCont
+          |  unnamedJoin
+          |  unnamedMeet
+          |  userDefined
+;
+
+filename:
+           identifier
+         | identifier '.' identifier
+         | filename '/' filename
+         --| string_literal
+;
+
+header_cs: identifier
+         | header ',' identifier
+;
+header_ss: identifier
+         | header  identifier
+;
+header:      header_cs
+          |  header_ss
+;
+
+implication: 
+             implication '-' '>' implication
+          |  implication '<' '-' implication
+          |  implication '<' '-' '>' implication
+          |  disjunction
+          |  '(' implication ')'
+          |  inductionFormula
+;
+
+inductionFormula: identifier '(' parameters ')'    -- e.g. find minimal formula satisfying Armstrong axioms, such as FD(r,x,y) introduced at http://arxiv.org/pdf/0902.3532v2
+;
+
+innerUnion:  expr 'v' expr
+          |  expr 'union' expr
+;
+
+inverse:     identifier '`'
+          |  parExpr '`'
+;
+
+include: 'include' filename ';'
+;
+
+join:        expr '^' expr
+          |  expr 'join' expr
+;
+
+oper:       '^'
+          | 'v'
+          | userOper
+;
+
+parameters: expr
+          | parameters ',' expr
+;
+
+parExpr:     '(' expr ')'
+;
+
+partition:  
+            '(' partition ')'
+          |  expr '#' expr
+          |  partition '^' partition
+          |  partition 'v' partition
+          
+          |  --partComp   
+             partition composition partition   -- partially defined:
+                                           -- result may be not an equivalence relation
+          
+          --|  content
+          --|  partition '|' content   
+             
+          |  tuple
+          |  partition '|' tuple      
+;
+
+project:  'project' header_cs expr
+;
+
+proposition:     
+             "not to confuse with userOper"
+          |  implication
+          |  expr '=' expr
+          |  expr '~' expr
+          |  partition '<' partition
+          |  partition '=' partition
+          |  partition '>' partition
+          |  expr '!' '=' expr
+          |  expr '<' '~' expr
+          |  expr '>' '~' expr
+          |  oper '!' '=' oper
+;
+
+program:   stmt  
+          |  program stmt 
+;
+
+query:       expr ';'
+          |  partition ';'
+;
+
+rename_attr_pair: identifier '/' identifier
+;
+rename:   'rename' rename_attr_pair expr
+;
+
+/*renaming_attr_list: identifier '/' identifier
+          | renaming_attr_list identifier '/' identifier
+;*/
+
+restrict:   'select' expr expr
+;
+
+setEQ:       expr '/' '=' expr
+;
+
+setIX:       expr composition expr
+;
+
+stmt:        assertion
+          |  assignment
+          |  query
+          |  include
+;
+
+table:       '[' ']'
+          |  '[' header ']'
+          |  '[' header ']' content
+/*        |  '[' identifier '=' identifier ']'  - deprecated. Use string literals, e.g. "x=y"*/
+;
+
+transpCont:  expr '/' '>' expr
+;
+unnamedJoin:  expr '^' '~' expr
+;
+unnamedMeet:  expr 'v' '~' expr
+;
+
+unaryUserDefined:
+              userOper parExpr 
+           |  userOper unaryUserDefined 
+           |  userOper identifier 
+;
+userDefined:  
+			  unaryUserDefined   -- prefix
+           |  expr userOper expr -- infix
+;
+userOper:  '<' identifier '>'
+          | '<' string_literal '>'
+;
+value:       digits
+          |  '-' digits
+          |  digits '.' digits
+          |  identifier
+          |  string_literal
+          |  /* nested relation */ parExpr          
+;
+
+"not to confuse with userOper":
+             expr '<' expr
+          |  expr '>' expr
+;
+
