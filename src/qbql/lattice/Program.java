@@ -16,6 +16,8 @@ import qbql.parser.ParseNode;
 import qbql.parser.RuleTuple;
 import qbql.parser.SyntaxError;
 import qbql.parser.Token;
+import qbql.parser.Visual;
+import qbql.parser.Parser.Tuple;
 import qbql.util.Util;
 
 public class Program {
@@ -99,7 +101,30 @@ public class Program {
     static int comma;
     static {        
         try {
-            earley = new Earley(latticeRules());
+            earley = new Earley(latticeRules()) {
+    			@Override
+    			protected boolean isScannedSymbol( int y, List<LexerToken> src, int pos, Tuple t, Integer suspect ) {
+    				int symbol = t.content(pos);
+    				LexerToken token = src.get(y);
+    				if( symbol == digits && token.type == Token.DIGITS )
+    					return true;
+    				if( symbol == string_literal && token.type == Token.QUOTED_STRING )
+    					return true;
+    				if( symbol == identifier && token.type == Token.DQUOTED_STRING )
+    					return true;
+    				return suspect != null && suspect == symbol 
+    					|| isIdentifier(y,src, symbol, suspect) && (suspect==null||notConfusedAsId(suspect,t.head,pos))
+    				;
+    			}
+    			/*@Override
+    		    protected boolean isIdentifier( int y, List<LexerToken> src, int symbol, Integer suspect ) {
+    		        if( symbol != identifier )
+    		            return false;
+    				LexerToken token = src.get(y);
+    				return symbol == identifier && token.type == Token.IDENTIFIER
+    		          ||   symbol == identifier && token.type == Token.DQUOTED_STRING;
+    		    }*/
+            };
             naturalJoin = earley.symbolIndexes.get("join");
             userDefined = earley.symbolIndexes.get("userDefined");
             unaryUserDefined = earley.symbolIndexes.get("unaryUserDefined");
@@ -168,11 +193,21 @@ public class Program {
             //values = earley.symbolIndexes.get("values");
             //namedValue = earley.symbolIndexes.get("namedValue");
             //System.out.println(earley.allSymbols[20]);
+            
+        	prioritizeRules(earley);
+        	//earley.isAsc = true;
+
         } catch( Exception e ) {
             e.printStackTrace(); 
         }
     }
 
+	private static void prioritizeRules( Earley testParser ) {
+		String rule2 = "proposition:  expr  '='  expr;";
+		String rule3 = "proposition:  implication;";
+		testParser.swapRules(rule2, rule3);	
+	}
+	
     public static Set<RuleTuple> latticeRules() throws Exception  {
         String input;
         try {
@@ -1049,8 +1084,17 @@ public class Program {
     static final String PARSE_ERROR_IN_ASSERTIONS_FILE = "*** Parse Error in assertions file ***";
     public void run( String prg ) {
         List<LexerToken> src =  new Lex().parse(prg);
+        
+        Visual visual = null;
+        //visual = new Visual(src, earley);
+        //LexerToken.print(src);
+        
         Matrix matrix = new Matrix(earley);
+        if( visual != null )
+        	matrix.visual = visual;
         earley.parse(src, matrix); 
+        if( visual != null )
+        	visual.draw(matrix);
         SyntaxError err = SyntaxError.checkSyntax(prg, new String[]{"program"}, src, earley, matrix);      
         if( err != null ) {
             System.out.println(err.toString());

@@ -341,8 +341,6 @@ x < y -> x ⊗ z < y ⊗ z.
 
 --(x ^ y) v (x ^ z) = x ^ ( ((x v z) ^ y) v ((x v y) ^ z) ).
 
-include "c:/users/dim/git/qbql/src/qbql/apps/db/Figure1.db";
-
 x <NotMatching> y  = <NOT>(<NOT>(x) v (y ^ x)). -- definition
 
 (x ^ y) v (x <NotMatching> y) = x.              -- check assertion against Figure1.db

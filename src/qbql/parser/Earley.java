@@ -1,68 +1,102 @@
 package qbql.parser;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
-import qbql.apps.Run;
-import qbql.bool.Oper;
-import qbql.lattice.Program;
 import qbql.util.Array;
 import qbql.util.Util;
 
-
-public class Earley extends Parser {
-    public Tuple[] rules;
-
-    protected int identifier = -1; 
+/**
+ * Generic Earley parser
+ * Known subclasses: SQLEarley -- for unified SQL+PL/SQL grammar 
+ * @author Dim
+ */
+public class Earley extends Parser  {
+    public int identifier = -1; 
     protected int string_literal = -1; 
-    protected int digits = -1; 
+    protected int digits = -1;     
+    
+    public boolean isCaseSensitive = true;
+    
+    
+    /**
+     * Example usage for toy grammar of arithmetic expressions
+     * @param args
+     * @throws Exception
+     */
+	public static void main( String[] args ) throws Exception {
+        /*Map<Integer, int[]> forward = new HashMap<Integer, int[]>();
+        Map<Integer, int[]> backward = new HashMap<Integer, int[]>();
+        addDependency(1, 2, forward, backward);
+        addDependency(2, 3, forward, backward);
+        addDependency(0, 1, forward, backward);
+        addDependency(2, 4, forward, backward);
+        System.out.println("forward ------------------");
+        for( int from : forward.keySet() ) 
+            for( int to : forward.get(from) )
+                System.out.println(from+"->"+to);
+        System.out.println("backward ------------------");
+        for( int from : backward.keySet() ) 
+            for( int to : backward.get(from) )
+                System.out.println(from+"->"+to);*/
 
+	    
+		//Util.profile(10000, 50);
 
-    protected int[] allXs = null;
-
-    public static void main( String[] args ) throws Exception {
-        //String input = "(Emps v [dept mgr]) /^ ((Emps /^\"mgr=mgr1\") v [dept mgr1]) < \"mgr=mgr1\".";
-        String input = Util.readFile(qbql.bool.Program.class,"lattice.embeding");
-        List<LexerToken> src =  (new Lex()).parse(input);
-
+        String input = 
+        	//"a lindy swings"
+            //Util.readFile(Earley.class, "test.sql") //$NON-NLS-1$
+                "1+2+3*4" 
+        ;
+        List<LexerToken> src =  new Lex().parse(input);
+        System.out.println("src.size()="+src.size());
+	
         Set<RuleTuple> wiki = new TreeSet<RuleTuple>();
         wiki.add(new RuleTuple("P",new String[]{"S"}));
-        wiki.add(new RuleTuple("S",new String[]{"S","'+'","S"}));
-        //wiki.add(new RuleTuple("S",new String[]{"M","'+'","S"}));
-        //wiki.add(new RuleTuple("S",new String[]{"S","'+'","M"}));
+        wiki.add(new RuleTuple("S",new String[]{"S","'+'","M"}));
         wiki.add(new RuleTuple("S",new String[]{"M"}));
-        wiki.add(new RuleTuple("M",new String[]{"M","'*'","T"}));
-        //wiki.add(new RuleTuple("M",new String[]{"T","'*'","M"}));
+        wiki.add(new RuleTuple("M",new String[]{"T","'*'","M"}));
         wiki.add(new RuleTuple("M",new String[]{"T"}));
+        wiki.add(new RuleTuple("T",new String[]{"'('","P","')'"}));
         wiki.add(new RuleTuple("T",new String[]{"digits"}));
         wiki.add(new RuleTuple("T",new String[]{"identifier"}));
         wiki.add(new RuleTuple("T",new String[]{"string_literal"}));
-
+        
         /*wiki.add(new RuleTuple("G",new String[]{"A","B","C"}));
         wiki.add(new RuleTuple("A",new String[]{"digits","digits",}));
         wiki.add(new RuleTuple("B",new String[]{"identifier"}));
-        wiki.add(new RuleTuple("C",new String[]{"string_literal","string_literal","string_literal"}));*/ 
+        wiki.add(new RuleTuple("C",new String[]{"string_literal","string_literal","string_literal"}));*/
 
-        Set<RuleTuple> rules = qbql.bool.Program.latticeRules();
-        //rules = wiki;
-
-        /*final String symbol = "include";
-        for( RuleTuple rule : rules ) 
-            if( rule.head.contains(symbol) ) 
-                System.out.println(rule.toString());
-            else for( int i = 0; i < rule.rhs.length; i++ ) 
-                if( rule.rhs[i].contains(symbol) ) {
-                    System.out.println(rule.toString());
-                    break;
-                }*/
-
-
-        Earley earley = new Earley(rules);
+        
+        Set<RuleTuple> rules = new TreeSet<RuleTuple>();
+        /*final Parsed p = new Parsed(
+                                             Util.readFile(Earley.class, "pereira.grammar"), //$NON-NLS-1$
+                                             Grammar.bnfParser(),
+                                             "grammar" //$NON-NLS-1$
+                                     );
+        //p.debug = true;
+        Grammar.grammar(p.getRoot(), p.getSrc(), rules);
+        */ 
+        rules = wiki;
+        Earley earley = new Earley(rules) {
+            /*protected void initCell00( List<LexerToken> src, Matrix matrix ) {
+                matrix.initCells(src.size());
+                int S = symbolIndexes.get("S");
+                initCell(matrix, new int[]{S},0);
+            }*/            
+        };
+        earley.isCaseSensitive = true;
         Matrix matrix = new Matrix(earley);
         Visual visual = null;
         visual = new Visual(src, earley);
@@ -72,493 +106,546 @@ public class Earley extends Parser {
         long t2 = System.currentTimeMillis();
         System.out.println("Earley parse time = "+(t2-t1)); // (authorized) //$NON-NLS-1$
         System.out.println("#tokens="+src.size());
-
+        
         if( visual != null )
-            visual.draw(matrix);
+        	visual.draw(matrix);
+        else
+        	System.out.println(matrix.toString());
         ParseNode out = earley.forest(src, matrix);
         out.printTree();
-    }
+	}
 
-
-    public void parse( List<LexerToken> src, Matrix matrix ) {
-        while( true ) {
-            int before = matrix.size();
-            if( !scan(matrix, src) )
-                break;
-            complete(matrix);
-            predict(matrix);
-            if( before == matrix.size() )
-                break;
+	protected void initCell00( List<LexerToken> src, Matrix matrix ) {
+        long t1 = 0;
+        if( matrix.visual != null )
+            t1 = System.nanoTime();
+        long[] content = null;
+        for( int i = 0; i < rules.length; i++ ) {
+            Tuple t = rules[i];
+            String head = allSymbols[t.head];
+            if( head.charAt(head.length()-1) != ')' )
+                content = Array.insert(content,makeMatrixCellElem(i, 0, t));
         }
-    }
-
-
-    public Earley( Set<RuleTuple> originalRules ) {
-        super(originalRules);
-        rules = new Tuple[originalRules.size()];
-        int p = 0;
-        for( RuleTuple t : originalRules ) {
-            if( t.rhs.length == 0 )
-                throw new AssertionError("empty production "+t.toString());
-            int h = symbolIndexes.get(t.head);
-            int[] rhs = new int[t.rhs.length];
-            for( int i = 0; i < rhs.length; i++ ) {
-                rhs[i] = symbolIndexes.get(t.rhs[i]);
-            }
-            rules[p++] = new Tuple(h,rhs);
+        matrix.initCells(src.size());
+        matrix.put(0, 0, new EarleyCell(content));
+        matrix.allXs = Array.insert(matrix.allXs,0);
+        if( matrix.visual != null  ) {
+            long t2 = System.nanoTime();
+            matrix.visual.visited[0][0] += (int)(t2-t1);
         }
-        identifier = symbolIndexes.get("identifier");
-        string_literal = symbolIndexes.get("string_literal");
+	}
+	
+	/**
+	 * principal recognition phase combining essential Earley parsing steps: scan, complete, predict 
+	 * @param src -- output of lexical analysis
+	 * @param matrix -- parser output 
+	 */
+    public synchronized void parse( List<LexerToken> src, Matrix m ) {
+    	Matrix matrix = (Matrix) m;
         try {
-            digits = symbolIndexes.get("digits");
-        } catch( NullPointerException e ) {} // no such symbol
-
-        precomputePredictions();
-        filterSingleRhsRules();
+            initCell00(src, matrix);
+            predict(matrix);
+            while( true ) {
+                //int before = matrix.size();
+                if( !scan(matrix, src) )
+                    break;
+                complete(matrix, src.size());
+                predict(matrix);
+                //if( before == matrix.size() )
+                //break;
+            }
+        } catch( Exception e ) {
+            for( StackTraceElement elem : e.getStackTrace() ) {
+                if( elem.toString().contains("UnitTest.assertion" ) 
+                 || elem.toString().contains("SqlEarley.main" )      
+                ) {
+                    System.err.println(e.toString());
+                    System.err.println("matrix.lastY="+matrix.lastY()+", src.size()="+src.size());
+                    break;
+                }
+            }
+        }
+    }
+	
+    @Override
+    public ParseNode parse( List<LexerToken> src ) {
+        Matrix matrix = new Matrix(this);
+        parse(src, matrix); 
+        return forest(src, matrix);
+        //return new TreeBuilder(matrix,this).build();
     }
 
+    
+	/**
+	 * Instantiate parser
+	 * @param originalRules -- grammar
+	 */
+    public Earley( Set<RuleTuple> originalRules ) {
+        this(originalRules, true);
+    }
+	public Earley( Set<RuleTuple> originalRules, boolean precomputePredictions ) {
+		super(originalRules);
+        identifier = symbolIndexes.get("identifier");
+        try { 
+            string_literal = symbolIndexes.get("string_literal");
+        } catch( NullPointerException e ) { /* symbols not present in some grammars */ }
+        try { 
+            digits = symbolIndexes.get("digits");
+        } catch( NullPointerException e ) { /* symbols not present in some grammars */ }
+        
+	}
+	
+	/*
+	 *  uniqueTerminalPredictions[symbolIndexes("group_by_clause)] = symbolIndexes("''GROUP''")
+	 *  uniqueTerminalPredictions[symbolIndexes("select_list")] = null;
+	 */
+	protected PredictedTerminals[] terminalPredictions = null;
 
     // precomputed  symbol -> predicted rules
-    protected Map<Integer, int[]> predicts = new HashMap<Integer, int[]>();
+	public Map<Integer, long[]> predicts = null;
+	
+	protected void precomputePredictions() {
+	        Map<Integer, int[]> closure = new HashMap<Integer, int[]>();
+	        Map<Integer, long[]> symbolHead2rules = new HashMap<Integer, long[]>(); 
+	        
+	        for( int i = 0; i < rules.length; i++ ) {
+	            int[] tmp = closure.get(rules[i].head);
+	            long[] tmp1 = symbolHead2rules.get(rules[i].head);
+	            tmp = Array.insert(tmp, rules[i].rhs[0]);
+	            tmp1 = Array.insert(tmp1, makeMatrixCellElem(i,0,rules[i]) );
+	            closure.put(rules[i].head, tmp);
+	            symbolHead2rules.put(rules[i].head, tmp1);
+	        }
+	//for( int k : symbolHead2rules.keySet() ) 
+	//for( int n : symbolHead2rules.get(k) )
+	//System.out.println(allSymbols[k]+" -> "+rules[n]);
+	        
+	        while( true ) {
+	            int before = size(closure);
+	            for( int k : closure.keySet() ) {
+	                final int[] v = closure.get(k);
+	                int[] tmp = Array.merge(v, new int[0]);
+	                for( int n : v ) {
+	                    tmp = Array.merge(tmp, closure.get(n));
+	                }
+	                closure.put(k, tmp);
+	            }
+	            if( before == size(closure) )
+	                break;
+	        }
+	        
+	//for( int k : closure.keySet() ) 
+	//for( int n : closure.get(k) )
+	//System.out.println(allSymbols[k]+"->"+allSymbols[n]);
+	        terminalPredictions = new PredictedTerminals[allSymbols.length];
+	        
+	        for( int k : closure.keySet() ) {
+	            long[] tmp = symbolHead2rules.get(k);
+	            for( int n : closure.get(k) ) {
+	                tmp = Array.merge(tmp, symbolHead2rules.get(n));
+	                
+	                String rhs0 = allSymbols[n];
+	                if( rhs0.charAt(0)=='\'' ) {
+	                    if( terminalPredictions[k] == null )
+	                        terminalPredictions[k] = new PredictedTerminals();
+	                    terminalPredictions[k].add(n);
+	                    continue;
+	                }
+	                if( n == identifier 
+	                 || n == digits
+	                 || n == string_literal
+	                ) {
+	                    if( terminalPredictions[k] == null )
+	                        terminalPredictions[k] = new PredictedTerminals();
+	                    terminalPredictions[k].invalidate();
+	                }
 
-    protected void precomputePredictions() {
-        Map<Integer, int[]> closure = new HashMap<Integer, int[]>();
-        Map<Integer, int[]> symbolHead2rules = new HashMap<Integer, int[]>();	
+	            }
+	            predicts.put(k, tmp);	            
+	        }
+	           
 
-        for( int i = 0; i < rules.length; i++ ) {
-            int[] tmp = closure.get(rules[i].head);
-            int[] tmp1 = symbolHead2rules.get(rules[i].head);
-            tmp = Array.insert(tmp, rules[i].rhs[0]);
-            tmp1 = Array.insert(tmp1, i);
-            closure.put(rules[i].head, tmp);
-            symbolHead2rules.put(rules[i].head, tmp1);
-        }
-        //for( int k : symbolHead2rules.keySet() ) 
-        //for( int n : symbolHead2rules.get(k) )
-        //System.out.println(allSymbols[k]+" -> "+rules[n]);
+	    }
+	    
 
-        while( true ) {
-            int before = size(closure);
-            for( int k : closure.keySet() ) {
-                final int[] v = closure.get(k);
-                int[] tmp = Array.merge(v, new int[0]);
-                for( int n : v ) {
-                    tmp = Array.merge(tmp, closure.get(n));
-                }
-                closure.put(k, tmp);
+	/**
+	 * Incremental transitive closure:
+	 * Inserting single ref->def would create multiple links between br and fd
+	 *   __                  __
+	 *  /  \    ref  def    /  \
+	 * | br | ==> ---> ==> | fd |
+	 *  \__/                \__/
+	 *   
+	 * @param ref
+	 * @param def
+	 * @param forward
+	 * @param backward
+	 */
+    private static void addDependency( int ref, int def, Map<Integer, int[]> forward, Map<Integer, int[]> backward ) {
+        int[] bd = backward.get(def);
+        bd = Array.insert(bd, def);
+        backward.put(def, bd);
+        int[] fr = forward.get(ref);
+        fr= Array.insert(fr,ref);        
+        forward.put(ref, fr);
+        int[] br = backward.get(ref);
+        br= Array.insert(br,ref);        
+        backward.put(ref, br);
+        int[] fd = forward.get(def);
+        fd= Array.insert(fd,def);        
+        forward.put(def, fd);
+        
+        Map<Integer, int[]> newForward = new HashMap<Integer, int[]>();
+        Map<Integer, int[]> newBackward = new HashMap<Integer, int[]>();
+        for( int from : br )
+            for( int to : fd ) {
+                int[] dependents = newForward.get(from);
+                dependents = Array.insert(dependents,to); 
+                newForward.put(from, dependents);
+                int[] referents = newBackward.get(to);
+                referents = Array.insert(referents,from); 
+                newBackward.put(to, referents);
             }
-            if( before == size(closure) )
-                break;
-        }
-
-        //for( int k : closure.keySet() ) 
-        //for( int n : closure.get(k) )
-        //System.out.println(allSymbols[k]+"->"+allSymbols[n]);
-
-        for( int k : closure.keySet() ) {
-            int[] tmp = symbolHead2rules.get(k);
-            for( int n : closure.get(k) )
-                tmp = Array.merge(tmp, symbolHead2rules.get(n));
-            predicts.put(k, tmp);
-        }
-
-        //for( int k : predicts.keySet() ) 
-        //for( int n : predicts.get(k) )
-        //System.out.println(allSymbols[k]+" -> "+rules[n]);
-
-
-    }
-
-    private void filterSingleRhsRules() {
-        Map<Integer, int[]> closure = new HashMap<Integer, int[]>();
-        Map<Integer, int[]> symbolRhs02heads = new HashMap<Integer, int[]>();   
-
-        for( int i = 0; i < allSymbols.length; i++ ) // reflexive
-            closure.put(i, new int[]{i});
-
-        for( int i = 0; i < rules.length; i++ ) {
-            int[] tmp = closure.get(rules[i].rhs[0]);
-            int[] tmp1 = symbolRhs02heads.get(rules[i].rhs[0]);
-            tmp = Array.insert(tmp, rules[i].head);
-            tmp1 = Array.insert(tmp1, rules[i].head);
-            closure.put(rules[i].rhs[0], tmp);
-            symbolRhs02heads.put(rules[i].rhs[0], tmp1);
-        }
-        //for( int k : symbolRhs02heads.keySet() ) 
-        //for( int n : symbolRhs02heads.get(k) )
-        //System.out.println(allSymbols[k]+" -> "+allSymbols[n]);
-
-        while( true ) {
-            int before = size(closure);
-            for( int k : closure.keySet() ) {
-                final int[] v = closure.get(k);
-                int[] tmp = Array.merge(v, new int[0]);
-                for( int n : v ) {
-                    tmp = Array.merge(tmp, closure.get(n));
-                }
-                closure.put(k, tmp);
+        for( int key : newForward.keySet() ) {
+            int[] existing = forward.get(key);
+            if( existing == null )
+                forward.put(key, newForward.get(key));
+            else {
+                existing = Array.merge(existing, newForward.get(key));
+                forward.put(key, existing);
             }
-            if( before == size(closure) )
-                break;
         }
-
-        //for( int k : closure.keySet() ) 
-        //for( int n : closure.get(k) )
-        //System.out.println(allSymbols[k]+"->"+allSymbols[n]);
-
-        singleRhsRules = new HashSet[allSymbols.length];
-        for( int k : closure.keySet() ) {
-            Set<Integer> tmp = new HashSet<Integer>();
-            for( int n : closure.get(k) )
-                tmp.add(n);
-            singleRhsRules[k] = tmp;
+        for( int key : newBackward.keySet() ) {
+            int[] existing = backward.get(key);
+            if( existing == null )
+                backward.put(key, newBackward.get(key));
+            else {
+                existing = Array.merge(existing, newBackward.get(key)); 
+                backward.put(key, existing);
+            }
         }
-
     }
 
+	
+		
+	private int size( Map<Integer, int[]> closure ) {
+		int ret = 0;
+		for( int[] tmp : closure.values() )
+			ret += tmp.length;
+		return ret;
+	}
 
 
-
-    private int size( Map<Integer, int[]> closure ) {
-        int ret = 0;
-        for( int[] tmp : closure.values() )
-            ret += tmp.length;
-        return ret;
-    }
-
-
-    EarleyCell insert( EarleyCell cell, int rule, int position ) {
-        if( cell == null )
-            cell = new EarleyCell(null);
-        cell.content = Array.insert(cell.content, makeEarleyCell(rule, position));
-        return cell;
-    }
-
-    protected boolean scan( Matrix matrix, List<LexerToken> src ) {
+	protected boolean scan( Matrix matrix, List<LexerToken> src ) {
+		int y = matrix.lastY();
+		if( src.size() <= y  ) {
+			return false;
+		}
+        
+		LexerToken token = src.get(y);
+        Integer suspect = symbolIndexes.get("'" + (isCaseSensitive?token.content:token.content.toUpperCase()) + "'");
+        boolean ret = false;
+        for( int i = matrix.allXs.length-1; 0 <= i; i-- ) {
+        	int x = matrix.allXs[i]; 
+            if( scan(matrix, y, src, x, suspect) )
+                ret = true;
+        }
+        if( scan(matrix, y, src, y, suspect) )
+            ret = true;
+		return ret;
+	}
+	private boolean scan( Matrix matrix, int y, List<LexerToken> src, int x, Integer suspect ) {
         long t1 = 0;
-        if( Visual.visited != null )
+        if( matrix.visual != null )
             t1 = System.nanoTime();
-        if( matrix.size() == 0 ) {
-            int[] content = null;
-            for( int i = 0; i < rules.length; i++ ) {
-                Tuple t = rules[i];
-                String head = allSymbols[t.head];
-                if( head.charAt(head.length()-1) != ')' )
-                    content = Array.insert(content,makeEarleyCell(i, 0));
-            }
-            matrix.put(Util.pair(0, 0), new EarleyCell(content));
-            allXs = Array.insert(allXs,0);
-            if( Visual.visited != null ) {
-                long t2 = System.nanoTime();
-                Visual.visited[0][0] += (int)(t2-t1);
-            }
-            return true;
-        }
-
-        Integer last = matrix.lastKey();
-        int y = Util.Y(last);
-        if( src.size() <= y  ) {
-            return false;
-        }
-
-        LexerToken token = src.get(y);
-        Integer suspect = symbolIndexes.get("'" + token.content + "'");
-
-        for( int i = allXs.length-1; 0 <= i; i-- ) {
-            int x = allXs[i]; 
-            scan(matrix, y, token, suspect, x);
-        }
-        scan(matrix, y, token, suspect, y);
-        return true;
-    }
-    private void scan( Matrix matrix, int y, LexerToken token, Integer suspect, int x ) {
-        long t1 = 0;
-        if( Visual.visited != null )
-            t1 = System.nanoTime();
-        int[] content = null;
-        Cell candidateRules = matrix.get(Util.pair(x,y));
-        if( candidateRules == null )
-            return;
-        for( int j = 0; j < candidateRules.size(); j++ ) {
-            int pos = candidateRules.getPosition(j);
-            int ruleNo = candidateRules.getRule(j);
-            Tuple t = rules[ruleNo];
-
-            if( t.size()-1 < pos )
-                continue;
-            int symbol = t.content(pos);
-            if( isScannedSymbol(token, suspect, pos, t, symbol) )
-                content = Array.insert(content,makeEarleyCell(ruleNo, pos+1));
-        }
-        if( content == null )
-            return;
-        if( Visual.visited != null ) {
+		long[] content = null;
+		Cell candidateRules = matrix.get(x,y);
+		if( candidateRules == null )
+			return false;
+		for( int j = 0; j < candidateRules.size(); j++ ) {
+			int pos = candidateRules.getPosition(j);
+			int ruleNo = candidateRules.getRule(j);
+			Tuple t = rules[ruleNo];
+			
+			if( t.size()-1 < pos )
+				continue;
+			if( isScannedSymbol(y,src, pos, t, suspect) ) {
+                if( !lookaheadOK(t,pos+1,matrix) )
+                    continue;
+				content = Array.insert(content,makeMatrixCellElem(ruleNo, pos+1, t));
+                if( t.rhs.length == pos+1 )
+                    matrix.enqueue(Util.lPair(x, t.head));
+			}
+		}
+        if( matrix.visual != null ) {
             long t2 = System.nanoTime();
-            Visual.visited[x][y+1] += (int)(t2-t1);
+            matrix.visual.visited[x][y+1] += (int)(t2-t1);
         }
-        matrix.put(Util.pair(x, y+1), new EarleyCell(content));
-        allXs = Array.insert(allXs,x);	
-    }
+		if( content == null )
+			return false;
+		matrix.put(x, y+1, new EarleyCell(content));
+		matrix.allXs = Array.insert(matrix.allXs,x);	
+		return true;
+	}
 
 
-    protected boolean isScannedSymbol( LexerToken token, Integer suspect, int pos,
-            Tuple t, int symbol ) {
-        return suspect != null && suspect == symbol 
-                || isIdentifier(token, symbol, suspect) && (suspect==null||notConfusedAsId(suspect,t.head,pos))
-                || symbol == digits && token.type == Token.DIGITS
-                || symbol == string_literal && token.type == Token.QUOTED_STRING;
-    }
+	protected boolean isScannedSymbol( int y, List<LexerToken> src, int pos, Tuple t, Integer suspect ) {
+		int symbol = t.content(pos);
+		LexerToken token = src.get(y);
+		if( symbol == digits && token.type == Token.DIGITS )
+			return true;
+		if( symbol == string_literal && token.type == Token.QUOTED_STRING )
+			return true;
+		return suspect != null && suspect == symbol 
+			|| isIdentifier(y,src, symbol, suspect) && (suspect==null||notConfusedAsId(suspect,t.head,pos))
+		;
+	}
 
 
-    // symbol @ pos within the rule with head, e.g.
-    // begin dummy1 : = 'N'
-    // doesn't scan to 
-    // object_d_rhs: constrained_type default_expr_opt
+	// symbol @ pos within the rule with head, e.g.
+	// begin dummy1 : = 'N'
+	// doesn't scan to 
+	// object_d_rhs: constrained_type default_expr_opt
     protected boolean notConfusedAsId(int symbol, int head, int pos) {
         return true;
     }
-    protected boolean isIdentifier( LexerToken token, int symbol, Integer suspect ) {
-        return symbol == identifier && token.type == Token.IDENTIFIER
-                ||   symbol == identifier && token.type == Token.DQUOTED_STRING;
+    protected boolean isIdentifier( int y, List<LexerToken> src, int symbol, Integer suspect ) {
+        if( symbol != identifier )
+            return false;
+		LexerToken token = src.get(y);
+        return symbol == identifier && token.type == Token.IDENTIFIER;
     }
-
-    void predict( Matrix matrix ) {
+	
+    protected void predict( Matrix matrix ) {
+    	if( predicts == null ) {
+    		predicts = new HashMap<Integer, long[]>();
+    		precomputePredictions();
+    	}
         long t1 = 0;
-        if( Visual.visited != null )
+        if( matrix.visual != null )
             t1 = System.nanoTime();
-        Integer last = matrix.lastKey();
-        //int x = Util.X(last);
-        int y = Util.Y(last);
-        int yy = Util.pair(y, y);
-        EarleyCell cell = (EarleyCell)matrix.get(yy);
-        int[] content = null;
-        if( cell != null )
-            content = cell.content;
-
-        SortedMap<Integer,Cell> range = matrix.subMap(Util.pair(0, y), true, last, true);
-        for( int key : range.keySet() ) {
-            //for( int rp : matrix.get(key) ) {
-            //int pos = Util.X(rp);
-            //int ruleNo = 
-            Cell candidateRules = matrix.get(key);
-            for( int j = 0; j < candidateRules.size(); j++ ) {
-                int pos = candidateRules.getPosition(j);
-                int ruleNo = candidateRules.getRule(j);
-                Tuple t = rules[ruleNo];
-                if( t.size() <= pos )
-                    continue;
+		int y = matrix.lastY();
+		
+		EarleyCell cell = (EarleyCell)matrix.get(y,y);
+		long[] content = null;
+		if( cell != null )
+			content = cell.content;
+		
+		int[] symbols = new int[0];  // = null --> possible NPE in "for( int symbol : symbols )" 
+        Map<Integer,Cell> xRange = matrix.getXRange(y);
+        //SortedMap<Long,Cell> range = matrix.subMap(Util.lPair(0, y), true, last, true);
+        for( int mid : xRange.keySet() ) {
+        	Cell candidateRules = matrix.get(mid,y);
+        	for( int j = 0; j < candidateRules.size(); j++ ) {
+        		int pos = candidateRules.getPosition(j);
+        		int ruleNo = candidateRules.getRule(j);
+    			Tuple t = rules[ruleNo];
+    			if( t.size() <= pos )
+    				continue;
                 int symbol = t.content(pos);
-                int[] predictions = predicts.get(symbol);
-                content = Array.merge(content,predictions);
-            }
+                    
+//if(y==5)
+//if( t.toString().startsWith("percentile_cont") )
+//y=5;
+                
+                symbols = Array.insert(symbols, symbol);
+        	}
         }
-        if( Visual.visited != null ) {
+        for( int symbol : symbols ) {
+            if( matrix.LAsuspect!=null ) {
+                PredictedTerminals terminal = terminalPredictions[symbol];
+                if( terminal != null )
+                    if( !terminal.matches(matrix.LAsuspect) )
+                        continue;
+            }
+            content = Array.merge(content,predicts.get(symbol));
+        }
+        
+        if( matrix.visual != null ) {
             long t2 = System.nanoTime();
-            Visual.visited[y][y] += (int)(t2-t1);
+            matrix.visual.visited[y][y] += (int)(t2-t1);
         }
         if( content != null && content.length > 0 ) 
-            matrix.put(yy, new EarleyCell(content));
+        	matrix.put(y,y, new EarleyCell(content));
         else
-            return;
+        	return;
+        
+	}
+	
+	public boolean skipRanges = true;
+	
+    protected void complete( Matrix matrix, int srcLength ) {
+        Map<Integer,Integer> skipIntervals = new HashMap<Integer,Integer>();
+        while( true ) {
+            long completionCandidate = matrix.dequeue();
+            if( completionCandidate == -1 )
+                break;
+            int symbol = Util.lY(completionCandidate);
+            int mid = Util.lX(completionCandidate);
+            
+            int y = matrix.lastY();
+//if(y==13 && mid == 10)
+//System.out.println("y==2");
 
-    }
-
-    public boolean skipRanges = true;
-    void complete( Matrix matrix ) {
-
-        Integer last = matrix.lastKey();
-        int y = Util.Y(last);
-        //int[] newAllXs = new int[allXs.length];
-        //System.arraycopy(allXs, 0, newAllXs, 0, allXs.length);
-        //System.out.println("allXs="+Arrays.toString(allXs));
-        for( int i = allXs.length-1; 0 <= i; i-- ) {
-            int x = allXs[i]; 
-
-            long t1 = 0;
-            if( Visual.visited != null )
-                t1 = System.nanoTime();
-
-            EarleyCell content =  null;
-
-            int skipTo = y;
-            while( true ) {
-                //for( int j = 0; j < 1; j++ ) {
-                content = (EarleyCell) matrix.get(Util.pair(x, y));
-                int before = content==null ? 0 : content.size();
-
-                SortedMap<Integer,Cell> range = matrix.subMap(Util.pair(0, y), true, last, true);
-
-                for( int key : range.keySet() ) {
-                    //for( int j = allXs.length-1; 0 <= j && x <= allXs[j]; j-- ) {                	
-                    //int mid = allXs[j];
-                    int mid = Util.X(key);
-
-                    Cell pres = matrix.get(Util.pair(x, mid));
-                    if( pres == null )
-                        continue;
-                    Cell pos = matrix.get(/*Util.pair(mid, y)*/key);
-                    if( pos == null )
-                        continue;
-
-                    Map<Integer,int[]> symPre2rulePos = new HashMap<Integer,int[]>();
-
-                    boolean fancyJoin = 100 < pres.size() && 10 < pos.size();
-                    if( fancyJoin ) {
-                        for( int jj = 0; jj < pos.size(); jj++ ) {
-                            int rulePost = pos.getRule(jj);                            
-                            Tuple tPost = rules[rulePost];
-                            symPre2rulePos.put(tPost.head, new int[0]);
-                        }
-                        for( int ii = 0; ii < pres.size(); ii++ ) {
-                            int dotPre = pres.getPosition(ii);
-                            int rulePre = pres.getRule(ii);
-                            Tuple tPre = rules[rulePre];
-                            if( tPre.size() == dotPre )
-                                continue;
-                            int symPre = tPre.content(dotPre);
-                            int[] tmp = symPre2rulePos.get(symPre);
-                            if( tmp == null )
-                                continue;
-                            int[] tmp1 = Array.insert(tmp, Util.pair(rulePre, dotPre));
-                            symPre2rulePos.put(symPre, tmp1);
-                        }
+            int indexX = Array.indexOf(matrix.allXs,mid);
+            if( matrix.allXs.length-1 < indexX )
+                indexX = matrix.allXs.length-1;
+            if( mid < matrix.allXs[indexX] )
+                indexX--;
+            //for( int x = mid; 0 <= x; x-- ) {
+            for( int i = indexX; 0 <= i; i-- ) {
+                int x = matrix.allXs[i]; 
+                int skipTo = y;
+                
+                long t1 = 0;
+                if( matrix.visual != null )
+                    t1 = System.nanoTime();
+                
+                Cell pres = matrix.get(x, mid);
+                if( pres == null ) {
+                    if( matrix.visual != null ) {
+                        long t2 = System.nanoTime();
+                        matrix.visual.visited[x][y]=Util.addlY(matrix.visual.visited[x][y],(int)(t2-t1));
                     }
-
-                    for( int jj = 0; jj < pos.size(); jj++ ) {
-                        int dotPost = pos.getPosition(jj);
-                        int rulePost = pos.getRule(jj);                            
-                        Tuple tPost = rules[rulePost];
-                        if( tPost.size() != dotPost ) 
-                            continue;
-
-                        if( fancyJoin ) {
-                            int[] tmp = symPre2rulePos.get(tPost.head);
-                            if( tmp == null )
-                                continue;
-                            for( int k : tmp ) {
-                                int dotPre = Util.Y(k);
-                                int rulePre = Util.X(k);
-                                Tuple tPre = rules[rulePre];
-                                if( tPre.size() == dotPre )
-                                    continue;
-                                int symPre = tPre.content(dotPre);
-                                if( symPre != tPost.head )
-                                    continue;
-                                if( !lookaheadOK(tPre,dotPre+1) )
-                                    continue;
-                                content = insert(content,rulePre,dotPre+1);
-                                if( skipRanges && rules[rulePre].rhs.length==dotPre+1 && mid < skipTo 
-                                        && allSymbols[rules[rulePre].head].charAt(0)!='"'
-                                        ) 
-                                    skipTo = mid;
-                                continue;
-                            }
-                        } else                        
-                            for( int ii = 0; ii < pres.size(); ii++ ) {
-                                int dotPre = pres.getPosition(ii);
-                                int rulePre = pres.getRule(ii);
-                                Tuple tPre = rules[rulePre];
-                                if( tPre.size() == dotPre )
-                                    continue;
-                                int symPre = tPre.content(dotPre);
-                                if( symPre != tPost.head )
-                                    continue;
-                                if( !lookaheadOK(tPre,dotPre+1) )
-                                    continue;
-                                content = insert(content,rulePre,dotPre+1);
-                                if( skipRanges && rules[rulePre].rhs.length==dotPre+1 && mid < skipTo 
-                                        && allSymbols[rules[rulePre].head].charAt(0)!='"'
-                                        ) 
-                                    skipTo = mid;
-                                continue;
-                            }
-                    }
-
+                    continue;
                 }
-                //System.out.println("x="+x+",y="+y+", skipTo="+skipTo);
-                if( skipRanges && x < skipTo && skipTo < y ) {
-                    for( int k = x+1; k < skipTo; k++ ) {
-                        allXs = Array.delete(allXs,k);
+                
+                long mask = ((long)symbol)<<48;
+                int start = Array.indexOf(pres.getContent(), mask);
+                int stop = Array.indexOf(pres.getContent(), mask|0xffffffffffffL)+1;
+                
+                EarleyCell content =  (EarleyCell) matrix.get(x, y);
+                
+                for( int ii = start; ii < stop && ii < pres.size(); ii++ ) {
+                    int dotPre = pres.getPosition(ii);
+                    int rulePre = pres.getRule(ii);
+                    Tuple tPre = rules[rulePre];
+                    if( tPre.size() == dotPre )
+                        continue;
+                    int symPre = tPre.content(dotPre);
+                    if( symPre != symbol )
+                        continue;
+                    if( y < srcLength && !lookaheadOK(tPre,dotPre+1,matrix) )
+                        continue;
+                    if( content == null )
+                        content = new EarleyCell(null);
+                    long promotedRule = makeMatrixCellElem(rulePre, dotPre+1, tPre);
+                    
+                    int before = content.size();
+                    content.insertContent(promotedRule);
+                    int after = content.size();
+                    
+                    if( before < after ) {
+                        matrix.put(x, y,content);
+                        if( skipRanges && tPre.rhs.length==dotPre+1 
+                                && mid < skipTo 
+                                && allSymbols[tPre.head].charAt(0)!='"'
+                                && allSymbols[symPre].charAt(0)!='"'
+                        ) {
+                            skipTo = mid;
+//if( x+1==7 && skipTo==11 )
+//System.out.println("----");
+                        }
+                    }
+
+                    if( tPre.size() == dotPre+1 && before < after) {
+                        matrix.enqueue(Util.lPair(x, tPre.head));
+                        //System.out.println("x="+x+",y="+y+"  "+allSymbols[tPre.head]+"  "+matrix.completionQueue.size());
                     }
                 }
-
-                if( Visual.visited != null ) {
+                if( matrix.visual != null ) {
                     long t2 = System.nanoTime();
-                    Visual.visited[x][y]=Util.addlY(Visual.visited[x][y],(int)(t2-t1));
+                    matrix.visual.visited[x][y]=Util.addlY(matrix.visual.visited[x][y],(int)(t2-t1));
                 }
 
-                if( content == null || content.size() == before )
-                    break;
-                matrix.put(Util.pair(x, y),content);
+                //System.out.println("x="+x+",y="+y+", skipTo="+skipTo);
+                if( skipRanges && x < skipTo && skipTo < y /*TEST#78 broken: && x+1 < skipTo*/ ) {
+                    Integer predecessor = skipIntervals.get(x+1);
+                    if( predecessor == null || skipTo < predecessor )
+                    	/*if( x+1 < skipTo )*/ skipIntervals.put(x+1, skipTo);
+                }
             }
+
+        }
+        for( int x : skipIntervals.keySet() ) {
+            int y = skipIntervals.get(x);
+            //System.out.println("skip from "+x+" to "+y);
+            /*for( int k = x; k < y; k++ ) {
+                matrix.allXs = Array.delete(matrix.allXs,k);
+            }*/
+
+            if( x < y )
+            	matrix.allXs = Array.delete(matrix.allXs,x,y);
         }
     }
 
-    protected boolean lookaheadOK( Tuple tPre, int pos ) {
-        return true;
-    }
+	
+    // Lookahead a keyword and dismiss mismatching tuples
+	protected boolean lookaheadOK( Tuple tPre, int pos, Matrix matrix ) {
+		return true;
+	}
 
-    void toHtml( int ruleNo, int pos, boolean selected, 
-            int x, int mid, int y, Matrix matrix, StringBuffer sb ) {
-        Tuple rule = rules[ruleNo];
-        String size = "+1";
-        if( selected ) {
-            sb.append("<b>");
-            size = "+2";
-        }
-        sb.append("<font size="+size+" color=blue>"+allSymbols[rule.head]+":</font> ");
-        final String greenish = "<font size="+size+" bgcolor=rgb(150,200,150))>";
-        final String bluish = "<font size="+size+" bgcolor=rgb(150,150,200))>";
-        sb.append(greenish);
-        for( int i = 0; i < rule.rhs.length; i++ ) {			
-            if( pos == i )
-                sb.append("</font>"+bluish);
-            sb.append(allSymbols[rule.rhs[i]]+" ");
-        }
-        sb.append("</font>");		
-        if( selected ) 
-            sb.append("</b>");
-
+	void toHtml( int ruleNo, int pos, boolean selected, 
+			int x, int mid, int y, Matrix matrix, StringBuffer sb ) {
+	    Tuple rule = rules[ruleNo];
+	    String size = "+1";
+	    if( selected ) {
+	    	sb.append("<b>");
+	    	size = "+2";
+	    }
+	    sb.append("<font size="+size+" color=blue>"+allSymbols[rule.head]+":</font> ");
+	    final String greenish = "<font size="+size+" bgcolor=rgb(150,200,150))>";
+	    final String bluish = "<font size="+size+" bgcolor=rgb(150,150,200))>";
+	    sb.append(greenish);
+	    for( int i = 0; i < rule.rhs.length; i++ ) {			
+		    if( pos == i )
+			    sb.append("</font>"+bluish);
+		    sb.append(allSymbols[rule.rhs[i]]+" ");
+		}
+	    sb.append("</font>");		
+	    if( selected ) 
+	    	sb.append("</b>");
+	    	    
         if( mid == -1 )
             return;
-        if( selected && x+y!=0) {
-            if( mid < x || x == y ) {
-                sb.append("<i> predict from </i>");
-                Cell bc = matrix.get(Util.pair(mid, y));
-                for( int j = 0; j < bc.size(); j++ ) {
-                    int bp = bc.getPosition(j);
-                    int br = bc.getRule(j);
+	    if( selected && x+y!=0) {
+	    	if( mid < x || x == y ) {
+		    	sb.append("<i> predict from </i>");
+		    	Cell bc = matrix.get(mid, y);
+	        	for( int j = 0; j < bc.size(); j++ ) {
+	        		int bp = bc.getPosition(j);
+	        		int br = bc.getRule(j);
                     Tuple bt = rules[br];
                     if( bp < bt.rhs.length && bt.rhs[bp] == rule.head ) {
-                        //sb.append("<font size="+size+" color = green>");
-                        //toString(br,bp,sb);
-                        //sb.append("</font>");
-                        toHtml(br,bp,false, -1,-1,-1, null, sb);
-                        return;
+        		    	//sb.append("<font size="+size+" color = green>");
+                    	//toString(br,bp,sb);
+        		    	//sb.append("</font>");
+        		    	toHtml(br,bp,false, -1,-1,-1, null, sb);
+                    	return;
                     }
-                }
-            } else if( y < mid ) {
-                sb.append("<i> scan from </i>");
-                Cell bc = matrix.get(Util.pair(x, y-1));
-                for( int j = 0; j < bc.size(); j++ ) {
-                    int bp = bc.getPosition(j);
-                    int br = bc.getRule(j);
+	        	}
+	    	} else if( y < mid ) {
+		    	sb.append("<i> scan from </i>");
+		    	Cell bc = matrix.get(x, y-1);
+	        	for( int j = 0; j < bc.size(); j++ ) {
+	        		int bp = bc.getPosition(j);
+	        		int br = bc.getRule(j);
                     Tuple bt = rules[br];
                     if( br == ruleNo && bp+1 == pos ) {
-                        //sb.append("<font size="+size+" color = green>");
-                        //toString(br,bp,sb);
-                        //sb.append("</font>");
-                        toHtml(br,bp,false, -1,-1,-1, null, sb);
-                        return;
+        		    	//sb.append("<font size="+size+" color = green>");
+                    	//toString(br,bp,sb);
+        		    	//sb.append("</font>");
+        		    	toHtml(br,bp,false, -1,-1,-1, null, sb);
+                    	return;
                     }
-                }
-            } else {
-                sb.append("<i> complete from </i>");
-                boolean secondTime = false;
-                Cell pre = matrix.get(Util.pair(x, mid));
-                Cell post = matrix.get(Util.pair(mid, y));
-                for( int i = 0; i < pre.size(); i++ ) 
-                    for( int j = 0; j < post.size(); j++ ) {
+	        	}
+	    	} else {
+		    	sb.append("<i> complete from </i>");
+		    	boolean secondTime = false;
+		    	Cell pre = matrix.get(x, mid);
+		    	Cell post = matrix.get(mid, y);
+	        	for( int i = 0; i < pre.size(); i++ ) 
+	        		for( int j = 0; j < post.size(); j++ ) {
                         int dotPre = pre.getPosition(i);
                         int dotPost = post.getPosition(j);
                         int rulePre = pre.getRule(i);
@@ -569,278 +656,201 @@ public class Earley extends Parser {
                             continue;
                         if( tPost.size() == dotPost ) {
                             if( rulePre != ruleNo )
-                                continue;
-                            if( dotPre+1 != pos )
-                                continue;
+                            	continue;
+                        	if( dotPre+1 != pos )
+                        		continue;
                             int symPre = tPre.content(dotPre);
                             if( symPre != tPost.head )
                                 continue;
                             if( secondTime )
                                 sb.append("<b> or </b>");                                
-                            toHtml(rulePre,dotPre,false, -1,-1,-1, null, sb);
-                            sb.append("<i> and </i>");
-                            toHtml(rulePost,dotPost,false, -1,-1,-1, null, sb);
-                            secondTime = true;
+            		    	toHtml(rulePre,dotPre,false, -1,-1,-1, null, sb);
+            		    	sb.append("<i> and </i>");
+            		    	toHtml(rulePost,dotPost,false, -1,-1,-1, null, sb);
+                        	secondTime = true;
                         }	        		
-                    }
-            }
-        }
-    }
-    void toString( int ruleNo, int pos, StringBuffer sb ) {
-        Tuple rule = rules[ruleNo];
-        sb.append(rule.toString(pos));		
-    }
+	        	}
+	    	}
+	    }
+	}
+	void toString( int ruleNo, int pos, StringBuffer sb ) {
+	    Tuple rule = rules[ruleNo];
+	    sb.append(rule.toString(pos));		
+	}
+	
+	
 
+    /**
+     * Initialize Earley initial matrix cell with grammar symbols other than "sequence of statements"
+     * e.g. when want to recognize SQL fragment such as group by clause
+     * @param matrix
+     * @param heads
+     * @param pos
+     */
+	public void initCell( Matrix matrix, int[] heads, int pos ) {
+		long[] content = null;
+		for( int i = 0; i < rules.length; i++ ) {
+			Tuple t = rules[i];
+			for( int h : heads ) 
+				if( t.head == h ) {
+					content = Array.insert(content,makeMatrixCellElem(i, 0, t));
+					break;
+				}
+		}
+		matrix.put(pos, pos, new EarleyCell(content));
+		matrix.allXs = Array.insert(matrix.allXs,pos);
+	}
 
 
     @Override
-    public ParseNode forest(List<LexerToken> src, Matrix m) {
-        explored = new HashSet<Long>();
-        return super.forest(src, m);
-    }
-
-
-    @Override
-    ParseNode treeForACell( List<LexerToken> src, Matrix m, Cell cell, int x, int y ) {
+    public ParseNode treeForACell( List<LexerToken> src, Matrix m, Cell cell, int x, int y/*, Map<Long,ParseNode> explored*/ ) {
+		//explored = new HashMap<Long,ParseNode>();
         int rule = -1;
         int pos = -1;
         for( int i = 0; i < cell.size(); i++ ) {
             rule = cell.getRule(i);
             pos = cell.getPosition(i);
             if( rules[rule].rhs.length == pos )
-                return tree(src, m, x, y, rule,pos);
+                return tree(src, m, x, y, rule,pos/*, explored*/);
         }
-        if( rule != -1 && pos != -1 && x+1 == y )
-            return tree(src, m, x, y, rule,pos);
+        if( rule != -1 && pos != -1 /*&& x+1 == y*/ )
+            return tree(src, m, x, y, rule,pos/*, explored*/);
         return null;
     }
 
-    private ParseNode tree( List<LexerToken> src, Matrix m, int x, int y, int rule, int pos ) {
-        //System.out.println(" @["+x+","+y+") >>>>> "+rules[rule].toString(pos));
-        //if(x==36&&y==65)
-        //System.out.println();
-        ParseNode ret = followScan(src, m,x,y,rule,pos); 
-        if( ret != null )
-            return ret;
+    public boolean isAsc = false;
+	protected ParseNode tree( List<LexerToken> src, Matrix m, int x, int y, int rule, int pos/*, Map<Long,ParseNode> explored*/ ) {
+//System.out.println("["+x+","+y+")");
+//if(x==8&&y==31)
+//x=8;
+		// follow scan
+		if( pos != 0 ) {
+			EarleyCell pre = (EarleyCell) m.get(x,y-1);
+			if( pre != null ) {
+				long demotedRule = makeMatrixCellElem(rule,pos-1, rules[rule]);
+				int indexOfDemotedRule = Array.indexOf(pre.content,demotedRule);
+				long ruleAtTheIndex = pre.content[indexOfDemotedRule];
+				if( ruleAtTheIndex == demotedRule ) {
+					Tuple t = rules[rule];
+					LexerToken token = src.get(y-1); 
+					Integer suspect = symbolIndexes.get("'" + (isCaseSensitive?token.content:token.content.toUpperCase()) + "'");
+					if( isScannedSymbol(y-1,src, pos-1, t,suspect) ) {
+						ParseNode branch = new ParseNode(y-1,y, rules[rule].rhs[pos-1], this);
+						if( x+1 == y ) {
+							if( rules[rule].rhs.length == 1 )
+								branch.addContent(rules[rule].head);
+							return branch;
+						}
+						int head = rules[rule].head;
+						if( pos != rules[rule].rhs.length ) {
+							head = -1;
+						}
+						ParseNode ret = new ParseNode(x,y,head,head, this);
+						ret.lft = tree(src,m, x,y-1,rule,pos-1/*, explored*/);
+						ret.lft.parent = ret;
+						ret.rgt = branch;
+						ret.rgt.parent = ret;
+						return ret;
+					}
+				}
+			}    	
+		}
+    	
+    	// follow complete
+    	//System.out.println("try complete["+x+","+y+")");
+		//System.out.println("rule#"+rule+"="+rules[rule].toString(pos));
+		if( pos != 0 ) {
+			long demotedRule = makeMatrixCellElem(rule,pos-1, rules[rule]);
+			TreeMap<Integer, Cell> cellsAtY = (TreeMap<Integer, Cell>) m.getXRange(y);
+			for( int mid : isAsc? cellsAtY.keySet(): cellsAtY.descendingKeySet() ) {
+				//if( mid < x )
+					//break;
+			//for( int mid = y-1; x <= mid; mid-- ) {
+				EarleyCell pre = (EarleyCell) m.get(x,mid);
+				if( pre == null )
+					continue;
+				Cell post =  m.get(mid,y);
+				if( post == null )
+					continue;
 
-        return followComplete(src,m, x, y, rule,pos);
+				if( pre.content[Array.indexOf(pre.content,demotedRule)] == demotedRule ) {
+					//for( int j = post.size()-1; 0 <= j ; j-- ) {
+					for( int j = 0; j <= post.size()-1 ; j++ ) {
+						int rJ = post.getRule(j);
+						int pJ = post.getPosition(j);
+						//Tuple tPost = rules[rJ];
+						if( rules[rJ].rhs.length != pJ )
+							continue;
+						if( rules[rJ].head != rules[rule].rhs[pos-1] )
+							continue;
+
+//System.out.println("rules["+rJ+"]="+rules[rJ].toString(pJ));
+						if( x != mid ) {
+							ParseNode ret = new ParseNode(x,y,rules[rule].rhs.length != pos ? -1 : rules[rule].head, this);
+							ret.lft = tree(src,m, x,mid,rule,pos-1/*, explored*/);
+							ret.lft.parent = ret;
+							ret.rgt = tree(src,m, mid,y,rJ,pJ/*, explored*/);
+							ret.rgt.parent = ret;
+							return ret;
+						} else if( rJ != rule || pJ != pos ) { //  StackOverflow
+							ParseNode ret = tree(src,m, mid,y,rJ,pJ/*, explored*/);
+							if( rules[rule].rhs.length == pos )
+								ret.addContent(rules[rule].head);
+							return ret;
+						}
+					}
+					//throw new AssertionError("VT: unexpected completion case "+rules[rule].toString(pos)+" @["+x+","+y+")");
+				}    
+			}       
+		}
+		throw new AssertionError("unwind "+rules[rule].toString(pos)+" @["+x+","+y+")");
     }
 
 
-    private ParseNode followScan( List<LexerToken> src, Matrix m, int x, int y, int rule, int pos ) {
-        //System.out.println("try scan");
-        Cell pre = m.get(Util.pair(x,y-1));
-        if( pre == null )
-            return null;
-        Cell cell = m.get(Util.pair(x,y));
-        for( int i = 0; i < pre.size(); i++ ) {
-            int rI = pre.getRule(i);
-            int pI = pre.getPosition(i);
-            if( rI != rule )
-                continue;
-            if( pI+1 != pos )
-                continue;
-            Tuple t = rules[rule];
-            LexerToken token = src.get(y-1); 
-            Integer suspect = symbolIndexes.get("'" + token.content + "'");
-            int symbol = t.content(pI);
-            if( !isScannedSymbol(token, suspect, pI, t, symbol) )
-                continue;
-            ParseNode branch = new ParseNode(y-1,y, rules[rI].rhs[pI],rules[rI].rhs[pI], this);
-            if( x+1 == y ) {
-                if( rules[rI].rhs.length == 1 )
-                    branch.addContent(rules[rI].head);
-                return branch;
-            }
-            int head = rules[rI].head;
-            if( pos != rules[rI].rhs.length ) {
-                head = -1;
-            }
-            ParseNode ret = new ParseNode(x,y,head,head, this);
-            ret.lft = tree(src,m, x,y-1,rI,pI);
-            ret.lft.parent = ret;
-            ret.rgt = branch;
-            ret.rgt.parent = ret;
-            return ret;
+    public class PredictedTerminals implements Serializable {
+        private boolean isValid = true;
+        int[] symbols = null;
+        
+        void add( int sym ) {
+            if( isValid  )
+                symbols = Array.insert(symbols, sym);
+            else 
+                invalidate();
         }
-        return null;
-    }
-
-    private Set<Long> explored = new HashSet<Long>();
-    private ParseNode followComplete( List<LexerToken> src, Matrix m, int x, int y, int rule, int pos ) {
-        //System.out.println("try complete");
-        for( int mid = y-1; x <= mid; mid-- ) {
-            Cell pre = m.get(Util.pair(x,mid));
-            if( pre == null )
-                continue;
-            Cell post = m.get(Util.pair(mid,y));
-            if( post == null )
-                continue;
-            for( int i = 0; i < pre.size(); i++ ) {
-                int rI = pre.getRule(i);
-                int pI = pre.getPosition(i);
-                if( rI != rule )
-                    continue;
-                if( pI+1 != pos )
-                    continue;
-                for( int j = 0; j < post.size(); j++ ) {
-                //for( int j = post.size()-1; 0 <= j ; j-- ) {
-                    int rJ = post.getRule(j);
-                    int pJ = post.getPosition(j);
-                    if( rules[rJ].rhs.length != pJ )
-                        continue;
-                    if( rules[rI].rhs.length <= pI )
-                        continue;
-                    if( rules[rJ].head != rules[rI].rhs[pI] )
-                        continue;
-
-                    // can degenerate into a cycle, example:
-                    // subquery: subquery[439,451) 
-                    // complete from 
-                    // subquery: subquery[439,451) and subquery[439,451): subquery 
-                    // or 
-                    // subquery: subquery[439,451) and subquery[439,451): subquery subquery[443,450) 
-                    long midYrJ = Util.lPair(Util.pair(mid, y), rJ);
-                    if( explored.contains(midYrJ) )
-                        continue;
-                    explored.add(midYrJ);
-
-                    int head = rules[rI].head;
-                    if( rules[rI].rhs.length != pI+1 ) {
-                        head = -1;
-                    }
-                    ParseNode ret = new ParseNode(x,y,head,head, this);
-                    try {
-                        if( x != mid ) {
-                            ret.lft = tree(src,m, x,mid,rI,pI);
-                            ret.lft.parent = ret;
-                            ret.rgt = tree(src,m, mid,y,rJ,pJ);
-                            ret.rgt.parent = ret;
-                        } else {
-                            ret = tree(src,m, mid,y,rJ,pJ);
-                            if( head != -1 )
-                                ret.addContent(head); 
-                        }
-                    } catch( AssertionError e ) {
-                        if( e.getMessage().startsWith("unwind") )
-                            continue;
-                        throw e;
-                    }
-                    return ret;
-                }
-            }
-        }
-        throw new AssertionError("unwind "+rules[rule]+" @["+x+","+y+")");
-    }
-
-    public class Tuple implements Comparable<Tuple> {
-        public int head;
-        public int[] rhs;  
-        public Tuple( int h, int[] r ) {
-            head = h;
-            rhs = r;
-        }
-        public int size() {
-            return rhs.length; 
-        }
-        public int content( int i ) {
-            return rhs[i];
+        
+        void invalidate() {
+            symbols = null;
+            isValid = false;
         }
 
-        public boolean equals(Object obj) {
-            return (this == obj ) || ( obj instanceof Tuple &&  compareTo((Tuple)obj)==0);
+        public boolean matches( Integer lookahead ) {
+            if( !isValid )
+                return true;
+            if( symbols == null )
+                return true;
+            return lookahead!=null && symbols[Array.indexOf(symbols, lookahead)] == lookahead;
         }
-        public int hashCode() {
-            throw new RuntimeException("hashCode inconssitent with equals"); //$NON-NLS-1$
-        }              
-        public int compareTo( Tuple src ) {
-            if( head==0 || src.head==0 )
-                throw new RuntimeException("head==0 || src.head==0"); //$NON-NLS-1$
-            int cmp = head-src.head;
-            if( cmp!=0 )
-                return cmp;
-            cmp = rhs.length-src.rhs.length;
-            if( cmp!=0 )
-                return cmp;
-            for( int i = 0; i < rhs.length; i++ ) {				
-                cmp = rhs[i]-src.rhs[i];
-                if( cmp!=0 )
-                    return cmp;                    
-            }
-            return  0;
-        }
+        
+        @Override
         public String toString() {
-            StringBuilder s = new StringBuilder(allSymbols[head]+":");
-            for( int i : rhs )
-                s.append("  "+allSymbols[i]);
-            s.append(";");
-            return s.toString(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-        }
-        public String toString( int pos ) {
-            StringBuilder s = new StringBuilder(allSymbols[head]+":");
-            for( int i = 0; i < rhs.length; i++ ) {
-                s.append(' ');
-                if( pos == i )
-                    s.append('!');
-                s.append(allSymbols[rhs[i]]);
+            if( !isValid )
+                return "*invalid*";
+            /*if( symbol == -1 )
+                return "symbol == -1";
+            return allSymbols[symbol];*/
+            if( symbols == null )
+                return "*symbols == null*";
+            StringBuilder ret = new StringBuilder("{");
+            for( int s : symbols ) {
+                ret.append(allSymbols[s]);
+                ret.append(',');
             }
-            if( pos == rhs.length )
-                s.append('!');
-            s.append(";");
-            return s.toString(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            return ret.toString();
         }
     }
-
-    public String print( int rulePos ) {
-        return rules[Util.X(rulePos)].toString(Util.Y(rulePos));
-    }
-
-    protected int makeEarleyCell( int rule, int position ) {
-        return Util.pair(rule, position);
-    }
-    int ruleFromEarleyCell( int code ) {
-        return Util.X(code);
-    }
-    public class EarleyCell implements Cell {
-        int[] content = null;
-        public EarleyCell( int[] content ) {
-            this.content = content;
-        }
-
-        public int getSymbol( int index ) {
-            throw new AssertionError("N/A");
-        }
-
-        public int getRule( int index ) {
-            return Util.X(content[index]);
-        }
-
-        public int getPosition( int index ) {
-            return Util.Y(content[index]);
-        }
-
-        public int size() {
-            return content.length;
-        }
-
-        public int[] getContent() {
-            throw new AssertionError("Legacy CYK method called by Earley");
-        }
-
-        public String toString() {
-            StringBuilder sb = new StringBuilder("{ ");
-            for( int i = 0; i < content.length; i++ ) {
-                if( 0 < i ) 
-                    sb.append(" , ");
-                Tuple t = rules[getRule(i)]; 
-                sb.append(t.toString(getPosition(i)));
-            }
-            sb.append(" }");
-            return sb.toString();
-        }
-    }
-
 
 }
+
+
 
 

@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import qbql.parser.Parser.Tuple;
+
 public class Grammar {
     private static Earley parser = bnfParser();
     public static Earley bnfParser() {
@@ -25,7 +27,30 @@ public class Grammar {
         rules.add(new RuleTuple("grammar", new String[] {"grammar", "rule"}));                             //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
         Set<RuleTuple> nonEmptyRules = rules; //RuleTransforms.eliminateEmptyProductions(rules); <--automatically transformed output is messy
         //RuleTuple.printRules(nonEmptyRules);
-		parser = new Earley(nonEmptyRules);
+		parser = new Earley(nonEmptyRules) {
+			@Override
+			protected boolean isScannedSymbol( int y, List<LexerToken> src, int pos, Tuple t, Integer suspect ) {
+				int symbol = t.content(pos);
+				LexerToken token = src.get(y);
+				if( symbol == digits && token.type == Token.DIGITS )
+					return true;
+				if( symbol == string_literal && token.type == Token.QUOTED_STRING )
+					return true;
+				if( symbol == identifier && token.type == Token.DQUOTED_STRING )
+					return true;
+				return suspect != null && suspect == symbol 
+					|| isIdentifier(y,src, symbol, suspect) && (suspect==null||notConfusedAsId(suspect,t.head,pos))
+				;
+			}
+			/*@Override
+		    protected boolean isIdentifier( int y, List<LexerToken> src, int symbol, Integer suspect ) {
+		        if( symbol != identifier )
+		            return false;
+				LexerToken token = src.get(y);
+				return symbol == identifier && token.type == Token.IDENTIFIER
+		          ||   symbol == identifier && token.type == Token.DQUOTED_STRING;
+		    }*/
+		};
         rule = parser.symbolIndexes.get("rule");
         grammar = parser.symbolIndexes.get("grammar");
         variable = parser.symbolIndexes.get("variable");
@@ -55,9 +80,14 @@ public class Grammar {
     public static ParseNode parseGrammarFile( List<LexerToken> src, String input ) {
         Visual visual = null;
         //visual = new Visual(src, parser);
+        //LexerToken.print(src);
         
         Matrix matrix = new Matrix(parser);
+        if( visual != null )
+        	matrix.visual = visual;
         parser.parse(src, matrix); 
+        if( visual != null )
+        	visual.draw(matrix);
         SyntaxError err = SyntaxError.checkSyntax(input, new String[]{"grammar"}, src, parser, matrix);      
         if( err != null ) {
             System.out.println(err.toString());

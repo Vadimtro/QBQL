@@ -1,28 +1,49 @@
 package qbql.parser;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import javax.swing.Icon;
+
+import qbql.parser.LexerToken;
+import qbql.parser.ParseNode;
+import qbql.parser.Parser;
+import qbql.util.Array;
+import qbql.util.Pair;
 import qbql.util.Util;
 
 public class ParseNode implements Comparable {
     public int from;
     public int to;
-
-    public int compareTo( Object obj ) {
-        ParseNode src = (ParseNode)obj;
-        if( from != src.from )
-            return from - src.from;
-        else
-            return to - src.to;
+    
+    /**
+     * Main method of investigating node payload: Check if the node contains "symbol" numeric encoding
+     */
+    public boolean contains( int symbol ) {
+        return symbols[Array.indexOf(symbols, symbol)] == symbol;
     }
-    public String toString() { return toString(0); }
+    /**
+     * Main method of investigating node payload: Check if the node contains symbol
+     * @param symbol
+     * @return
+     */
+    public boolean contains( String symbol ) {
+        if( parser == null )
+            return false;
+        Integer code = parser.symbolIndexes.get(symbol);
+        if( code == null )
+            throw new AssertionError("No such symbol `"+symbol+"` in the grammar");
+        return contains(code);
+    }
 
+    /**
+     * Walk this tree branch depth-first and return the list of all node's descendants
+     * @return
+     */
     public List<ParseNode> descendants() {
         List<ParseNode> ret = new ArrayList<ParseNode>();
         ret.add(this);
@@ -31,6 +52,116 @@ public class ParseNode implements Comparable {
         return ret;
     }
 
+    public ParseNode parent;
+
+    /**
+     * Navigate to node's parent
+     * It is fast, because reference to parent is kept during node's creation
+     * @return
+     */
+    public ParseNode parent() {
+        if( parent == null )
+            return null;
+        if( !parent.isAuxiliary() )
+            return parent;
+        // For auxiliary root node would proceed down
+        ParseNode ret = parent.parent();
+        if( ret == null )
+            return parent; // not ret which is null
+        return ret;
+    }
+    
+
+    /**
+     * Get node's child which interval covers [head, tail)
+     * Deprecated as it is tempting to mistakenly pick up this method over the locate()
+     * @param head
+     * @param tail
+     * @return
+     */
+    @Deprecated
+    public ParseNode childAt( int head, int tail ) {
+        if( topLevel != null ) {
+            for( ParseNode child : children() ) {
+                if( child.from <= head && tail <= child.to ) 
+                    return child;
+            }
+            return null;
+        } 
+        if( lft != null && lft.from <= head && tail <= lft.to ) 
+            return lft;
+        if( rgt != null && rgt.from <= head && tail <= rgt.to ) 
+            return rgt;
+        return null;        
+    }
+
+    
+    /**
+     * Node's ordering (e.g. used in collections of nodes created via tree traversal)
+     */
+    public int compareTo( Object obj ) {
+        ParseNode src = (ParseNode)obj;
+        if( from != src.from )
+            return from - src.from;
+        else
+            return to - src.to;
+    }
+    @Override
+    public String toString() { return toString(0); }
+
+
+    /**
+     * Walk this tree branch depth-first and return the list of all node's descendants
+     * each coupled with its parent (calculating parent for a node is not efficient otherwise)
+     * @return 
+     */
+    public ArrayList<Pair<ParseNode,ParseNode>> descendants( ParseNode parent ) {
+    	ArrayList<Pair<ParseNode,ParseNode>> ret = new ArrayList<Pair<ParseNode,ParseNode>>();
+        ret.add(new Pair<ParseNode,ParseNode>(this,parent));
+        for( ParseNode n : children() )
+            ret.addAll(n.descendants(this));
+        return ret;
+    }
+    
+    /**
+     * Walk the tree without consuming memory
+     */
+    public ParseNode next() {
+        if( lft != null ) {
+            if( lft.isAuxiliary() )
+                return lft.next();
+            return lft;
+        }
+        ParseNode prt = parent;
+        while( prt != null ) {
+        	ParseNode nextSibling = prt.rgt;
+            if( nextSibling == null && prt.topLevel != null ) {
+                for( ParseNode p : prt.topLevel ) {
+                	if( to <= p.from ) {
+                        if( p.isAuxiliary() )
+                            return p.next();
+                        return p;
+                	}
+                }
+            }
+            if( nextSibling != null ) {
+                if( to == nextSibling.from ) {
+                    if( nextSibling.isAuxiliary() )
+                        return nextSibling.next();
+                    return nextSibling;
+                }
+            }
+            prt = prt.parent;
+        }
+        if( topLevel != null ) {
+            for( ParseNode child : topLevel ) {
+                 return child;
+            }
+        } 
+        return null;
+    }
+
+    
     /**
      * Ancestor chain from the leaf at position pos to the root "this" 
      * @param pos
@@ -55,23 +186,34 @@ public class ParseNode implements Comparable {
         return ret;
     }
 
-    /**
-     * The closest ancestor with the "content"
-     */     
+    @Deprecated
     public ParseNode ancestor( int head, int tail, int content ) {
-        ParseNode parent = parent(head, tail);
-        if( parent == this ) // that is root
+        /*ParseNode parent = parent(head, tail);
+        if( parent == this || parent == null ) // that is root
             return null;
         else if( parent.contains(content) )
             return parent;
         else
-            return ancestor(parent.from, parent.to, content);
+            return ancestor(parent.from, parent.to, content);*/
+        throw new AssertionError("Deprecated");
+    }
+    /**
+     * The closest ancestor with the "content"
+     */     
+    public ParseNode ancestor( int content ) {
+        if( contains(content) )
+            return this;
+        if( parent() == null )
+            return null;
+        return parent().ancestor(content);
     }
     
     /**
      * The closest descendant of this (root) with the "content" covering [head,tail)
      */     
     public ParseNode descendant( int head, int tail, int content ) {
+        if( contains(content) )
+            return this;
         for( ParseNode child : children() )
             if( child.from <= head && tail <= child.to )
                 if( child.contains(content) )
@@ -80,33 +222,54 @@ public class ParseNode implements Comparable {
                     return child.descendant(head, tail, content);
         return null;
     }
-
+    
+    /**
+     * locate the node [head,tail)
+     */     
     public ParseNode locate( int head, int tail ) {
-        if( from == head && tail == to ) 
+        if( from == head && tail == to )
             return this;
-        for( ParseNode n : children() )
-            if( n.from <= head && tail <= n.to ) 
-                return n.locate(head, tail);
+        for( ParseNode child : children() ) {
+            if( child.from <= head && tail <= child.to )
+                return child.locate(head, tail);
+        }
         return null;
     }
-    
+
+
     /**
      * Parent of the ParseNode[head,tail), not "this" (which assumed to be the root)
      * @param head
      * @param tail
      * @return
-     */
+     *  Too slow!
+     */ 
+    @Deprecated
     public ParseNode parent( int head, int tail ) {
-        for( ParseNode descendant : intermediates(head, tail) )
-            for( ParseNode child : descendant.children() )
-                if( child.from == head && child.to == tail )
-                    return descendant;
-        return null;
+    	ParseNode lastNotAux = null;
+    	ParseNode current = this;
+    	do {
+    		if( !current.isAuxiliary() )
+    			lastNotAux = current;
+    		current = current.childAt(head,tail);
+    		if( current == null ) 
+    			return null;
+    	} while( current.from != head || current.to != tail );
+    	return lastNotAux;
     }
-
+    
+    
+    /**
+     * Print tree branch at a given offset
+     * @param depth -- tree branch is positioned at
+     * (depth is calculated by relative position of ParseNode to the root)
+     */
     void print( int depth ) {
         System.out.println(toString(depth)); // (authorized)
     }
+    /**
+     * @return the leaf node, normally [pos,pos+1)
+     */
     public ParseNode leafAtPos( int pos ) {
         if( children().size() == 0 && pos == from )
             return this;
@@ -116,29 +279,40 @@ public class ParseNode implements Comparable {
         }
         return null;
     }
-    private void calculateDepth( Map<Integer,Integer> depthMap, int depth ) {
-        depthMap.put(Util.pair(from,to), depth);
+    private void calculateDepth( Map<Long,Integer> depthMap, int depth ) {
+        depthMap.put(Util.lPair(from,to), depth);
         for( ParseNode child : children() ) {
             child.calculateDepth(depthMap, depth+1);
         }
     }
-    Map<Integer,Integer> calculateDepth() {
-        Map<Integer,Integer> depthMap = new TreeMap<Integer,Integer>();
+    Map<Long, Integer> calculateDepth() {
+        Map<Long,Integer> depthMap = new TreeMap<Long,Integer>();
         calculateDepth(depthMap, 0);
         return depthMap;
     }
+    
+    /**
+     * The most common method to output tree to the console
+     * Normally invoked on the root
+     */
     public void printTree() {
-        Map<Integer,Integer> depthMap = calculateDepth();
+        Map<Long,Integer> depthMap = calculateDepth();
 
         int i = 0;
         for( ParseNode n : descendants() ) {
             //if( i++>500 ) {
         	    //System.out.println("...");
                 //return;}
-            int depth = depthMap.get(Util.pair(n.from, n.to));
+            int depth = depthMap.get(Util.lPair(n.from, n.to));
             n.print(depth);
         }
     }
+    /**
+     * For CYK method grammar is in Chomski Normal Form (CNF)
+     * with binary productions. While the print() method
+     * ignores CNF intermediatory symbols, this mehod outputs the full tree 
+     * @param depth
+     */
     public void printBinaryTree( int depth ) {
         print(depth);
         if( lft!=null )
@@ -149,36 +323,101 @@ public class ParseNode implements Comparable {
             for( ParseNode n : topLevel )
                 n.printBinaryTree(depth+1);
     }
+    /**
+     * Output to a string rather than console
+     * Dismiss all auxiliary nodes (useful for parse tree regression testing)
+     */
+    public String tree() {
+        StringBuilder ret = new StringBuilder();
+        
+        Map<Long,Integer> depthMap = calculateDepth();
+
+        int i = 0;
+        for( ParseNode n : descendants() ) {
+            int depth = depthMap.get(Util.lPair(n.from, n.to));
+            ret.append(n.toString(depth,"["));
+            ret.append("\n");
+        }
+        return ret.toString();
+    }
 
     /**
      * @param src -- scanner output
      * @return -- scanner content corresponding to the parse node
      */
     public String content( List<LexerToken> src ) {
+    	return content(src, null);
+    }
+    public String content( List<LexerToken> src, Boolean addWsDividers ) {
         StringBuilder sb = new StringBuilder();
-        for( int i = from; i < to; i++ )
-            sb.append(src.get(i).content);
+        try { 
+            int lastEnd = -1;  // accomodate both "a.b" and "a b" 
+        	for( int i = from; i < to; i++ ) {
+        	    LexerToken t = src.get(i);
+        	    if( addWsDividers == null && from < i && lastEnd < t.begin  
+        	     || addWsDividers != null && addWsDividers		
+        	    ) {
+                    sb.append(' ');
+        	    }
+        		sb.append(t.content);
+        		lastEnd = t.end;
+        	}
+        } catch( IndexOutOfBoundsException e ) {        	
+        	System.err.println("src out of sync with parse tree?");
+        	e.printStackTrace(); // investigating nasty hang
+        }
         return sb.toString();
     }
+    
 
-    //////////////////// Implementation (Former subclass) ///////////////////
     ParseNode lft = null;
     ParseNode rgt = null;
 
-    private Set<Integer> content = new HashSet<Integer>();
-    public Set<Integer> content() {
-    	return content;
+    int[] symbols = new int[0];
+    public int[] content() {
+    	return symbols;
     }
-    public void addContent( int symbol ) {
-    	content.add(symbol);
-    }
+    
     /**
-     * Check if the node contains "symbol"
-     * If "reducedContent" is not null then refer to this map
+     * Return the content as strings
+     * 
+     * @return array of Strings
      */
-    public boolean contains( int symbol ) {
-        return content().contains(symbol);
+    public String[] contentAsStrings() {
+    		String[] ret = new String[symbols.length];
+    		for (int i = 0; i < ret.length; ++i) {
+    			ret[i] = parser.allSymbols[symbols[i]];
+    		}
+    		return ret;
     }
+
+    /**
+     * Return one symbol
+     * 
+     * @return The i<em>th</em> content
+     */
+    public String content(int i) {
+    		if (symbols[i] < 0) {
+    			return "[symbols["+i+"] = "+symbols[i]+"]"; 
+    		}
+    		return parser.allSymbols[symbols[i]];
+    }
+
+    public void addContent( int symbol ) {
+    	symbols = Array.insert(symbols, symbol);
+    }
+    public void addContent( String symbol ) {
+        //if( symbol.charAt(0) == '"' )
+            //symbol = symbol.substring(1,symbol.length()-1);
+        Integer s = parser.symbolIndexes.get(symbol);
+        if( s == null )
+            System.err.println(symbol+" not found");
+        addContent(s);
+    }
+    public void deleteContent( int symbol ) {
+    	symbols = Array.delete(symbols, symbol);
+    }
+    
 
     // If fail to parse complete text, then accumulate all children here
     // if topLevel != null then lft and rgt == null, and content is empty. 
@@ -189,27 +428,44 @@ public class ParseNode implements Comparable {
             topLevel = new TreeSet<ParseNode>();
         topLevel.add(child);
     }
+    
+    public ParseNode coveredByOnTopLevel( int pos  ) {
+    	if( topLevel == null )
+    		return null;
+    	for( ParseNode node: topLevel ) {
+    		if( node.from <= pos && pos < node.to )
+    			return node;
+    	}
+    	return null;
+    }
 
-    private Parser cyk;
-    public ParseNode( int begin, int end, int sIn, int sOut, Parser c ) {
+
+    Parser parser;
+    /**
+     * Create node at [begin,end) with content {symbol} 
+     * Nodes are generated by parser internally, so it is not part of parser API
+     * @param dummy -- not used since deprecation of CYK parsing method
+     */
+    public ParseNode( int begin, int end, int symbol, int dummy, Parser p ) {
+        this(begin,end,symbol,p);
+    }
+    public ParseNode( int begin, int end, int symbol, Parser p ) {
         from = begin;
         to = end;
-        content.add(sIn);
-        content.add(sOut);
-        cyk = c;
+        addContent(symbol);
+        parser = p;
     }
+
+    // skip unimportant node content
+    // typical marker characters are [ , ) , and " 
+    public static String ignoreMarkers = null;
     
-    ParseNode parent;
-    public ParseNode parent() {
-        if( parent == null )
-            return null;
-        if( !parent.isAuxiliary() )
-            return parent;
-        return parent.parent();
+    protected String toString( int depth ) {
+        if( ignoreMarkers != null )
+            return toString(depth,ignoreMarkers);
+        return toString(depth,"");
     }
-
-
-    protected String toString( int depth ) {      
+    protected String toString( int depth, String auxMarkers ) {      
         StringBuffer sb = new StringBuffer();
         for(int i = 0; i < depth ;i++)
             sb.append("  ");  //$NON-NLS-1$
@@ -217,52 +473,83 @@ public class ParseNode implements Comparable {
         for( Integer i : content() ) {
             if( i==-1 )
                 continue;
-        	String symbol = cyk.allSymbols[i];
+        	String symbol = parser.allSymbols[i];
         	//symbol = symbol.endsWith(")")?("\""+symbol+"\""):symbol;
         	//symbol = symbol.endsWith(")")?"":symbol;
-        	sb.append("  "+ symbol); //$NON-NLS-1$
+        	//symbol = symbol.endsWith("\"")?"":symbol;
+        	boolean skip = false;
+        	for( char c : auxMarkers.toCharArray() )
+        	    if( 0 <= symbol.indexOf(c) ) {
+        	        skip = true;
+        	        break;
+        	    }
+        	if( !skip )
+        	    sb.append("  "+ symbol); //$NON-NLS-1$
         }
         return sb.toString();
     }
     
-	public String interval() {
+    /**
+     * The node's interval is a unique node identifier in the parse tree
+     * @return
+     */
+    public String interval() {
 		return "["+from+","+to+")";
 	}
+    /**
+     * Another excellent node identifier
+     * @return
+     */
+    public long id() {
+        return Util.lPair(from,to);
+    }
 
-    // careful changing this method: parse tree traversal depends on it
+    /**
+     * Was somewhat frivolous definition which parse tree nodes are less important than the others 
+     * 
+     * For Earley parser auxiliary node contains empty set of symbols 
+     */
     public boolean isAuxiliary() {
-    	if( contains(-1) )
-    		return true;
+        // careful changing this method: parse tree traversal depends on it
+    	//if( contains(-1) )
+    		//return true;
+        if( symbols[0] == -1 )
+            return true;
+    	
+    	// shortcut
+    	if( /*parser.auxSymbols.length == 0*/ true )
+    		return false;
     	
     	if( from+1 == to )
     		return false;
     	
-        boolean noneAux = true;
-        boolean containsConcat = false;
-        boolean containsRawBnf = false;
-        boolean containsBlock = false;
-        for( Integer symbol : content() ) {
-            String symb = cyk.allSymbols[symbol];
-			if( symb.indexOf("+") < 0  //$NON-NLS-1$
-             || "'+'".equals(symb)  //$NON-NLS-1$
-            ) {
-                noneAux = false;
-                //break;
-            }
-			if(  "concat".equals(symb) ) //$NON-NLS-1$ 
-				containsConcat = true;
-			if(  "rawbnf".equals(symb) ) //$NON-NLS-1$ 
-				containsRawBnf = true;		               		            
-			if(  "block".equals(symb) ) //$NON-NLS-1$ 
-				containsBlock = true;		               		            
+        boolean isAux = false;        
+        //boolean containsConcat = false;
+        //boolean containsRawBnf = false;
+        //boolean containsBlock = false;
+        for( Integer symbol : content() ) {        	
+        	for( int i = 0; i < 100000/*parser.auxSymbols.length*/; i++ ) {
+				if( i == symbol ) {
+					isAux = true;
+					break;
+				}
+			}
+		    //if(  "concat".equals(symb) ) //$NON-NLS-1$ 
+				//containsConcat = true;
+			//if(  "rawbnf".equals(symb) ) //$NON-NLS-1$ 
+				//containsRawBnf = true;		               		            
+			//if(  "block".equals(symb) ) //$NON-NLS-1$ 
+				//containsBlock = true;		               		            
         }
         //if( containsConcat && !containsRawBnf && !containsBlock )
         	//return true;
-        return noneAux;   
+        return isAux;   
     }
 
 
-    // navigates through children skipping all the auxiliary nodes
+    /**
+     *  Navigates through children (skipping all the auxiliary nodes)
+     */
     public Set<ParseNode> children() {
         Set<ParseNode> ret = new TreeSet<ParseNode>();
         if( topLevel != null ) {
@@ -289,6 +576,10 @@ public class ParseNode implements Comparable {
         return ret;
     }
 
+    /**
+     * Used in a very narrow context of parsing only code fragment within bigger source
+     * @param offset
+     */
     public void moveInterval( int offset ) {
         from += offset;
         to += offset;
@@ -303,10 +594,57 @@ public class ParseNode implements Comparable {
         }
     }
 
-
-    public static void main(String[] args) throws Exception {
-        //System.out.println(CYK.allSymbols[1660]);
-        //System.out.println(CYK.symbolIndexes.get("'SELECT'+select_list+table_expression"));
+    
+    public int treeDepth() {
+        int ret = 0;
+        for(  ParseNode child : children() ) {
+            int tmp = child.treeDepth();
+            if( ret < tmp )
+                ret = tmp;
+        }
+        return ret+1;
     }
+    
+    // abstract method
+    public Icon getIcon() {
+    	return null;
+    }
+    
+    /**
+     * Tree node encoding resilient to tree modifications, e.g .2.5  (the fifth child of the second child of the root node)
+     * @return
+     */
+    public String path() {
+    	ParseNode parent = parent();
+		if( parent == null )
+    		return "";
+		int i = -1;
+		for( ParseNode child: parent.children() ) {
+			i++;
+			if( child == this )
+				return parent.path()+"."+i;		
+		}
+		throw new AssertionError("impossible case");
+    }
+    /**
+     * Descend according to the path,  e.g .2.5  to the second child of the root node, then to fifth child...
+     * @param root
+     * @param path
+     * @return
+     */
+    public ParseNode locate( ParseNode root, String path ) {
+    	if( path.length() == 0 )
+    		return root;
+    	int sibling = Integer.parseInt(path.substring(1,2));
+        String truncated = path.substring(2);
+		int i = -1;
+		for( ParseNode child: parent.children() ) {
+			i++;
+			if( i == sibling )
+				return locate(child,truncated);
+		}
+ 		throw new AssertionError("impossible case");
+    }
+
 }
 
