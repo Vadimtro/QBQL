@@ -43,4 +43,30 @@ public class LexerToken {
         }
         return ret.toString(); 
     }
+    
+    /**
+     * Helper method to render abbreviated content of parsed text covered by ParseNode
+     * @param from  -- beginning of node interval
+     * @param to -- end of node interval
+     * @param src  -- lexed text
+     * @return
+     */
+    public static String mnemonics( int from, int to, List<LexerToken> src ) {
+        int _8 = 8;
+        if( from + 1 == to)
+            return Util.padln(_8+2<src.get(from).content.length() ? src.get(from).content.substring(0,_8+2) : src.get(from).content, _8+2);
+        else {  // Node containing many tokens
+                // Get _8 word's first letters with capitalized keywords 
+                // e.g. "emp=10 and dept=emp" -> "e=1Ad=e"
+            StringBuilder ret = new StringBuilder("\"");
+            for( int i = from; i < to && i < from+_8 ; i++ ) {               
+                String token = src.get(i).content.toUpperCase();
+                String t = token.substring(0,1).toLowerCase();
+                ret.append(t);
+            }
+            ret.append('\"');
+            return Util.padln(ret.toString(),_8+2);
+        }
+    }
+
 }

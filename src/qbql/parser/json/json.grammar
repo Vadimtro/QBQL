@@ -1,0 +1,84 @@
+json: value
+   ;
+
+commaPairs: ',' pair
+         | commaPairs ',' pair
+;
+
+obj: '{' pair commaPairs '}'
+   | '{' pair  '}'
+   | '{' '}'
+   ;
+
+pair: identifier ':' value
+   ;
+
+/*slow: arr: '[' value (',' value)* ']'
+   | '[' ']'
+   ;*/
+   
+comma_value_list:     ',' value
+   | comma_value_list ',' value
+   ;
+
+arr: '[' value comma_value_list ']'
+   | '[' value ']'
+   | '[' ']'
+   ;
+   
+
+value
+	:	IntegerLiteral
+	|	FloatingPointLiteral
+	|	BooleanLiteral
+	|	CharacterLiteral
+	|	identifier
+	|	'null'
+	|   obj
+	|   arr
+	;
+
+IntegerLiteral: digits | '-' digits;
+FloatingPointLiteral:
+       '.' digits
+     | digits '.' digits
+     | digits '.' digits 'f'
+     | digits 'f'
+     | digits 'f' 'f'
+     | digits 'F' 'F'
+      | digits 'f' 'f' 'f' 'f'
+     | digits 'f' digits 'f'
+     | digits 'e'
+     | digits 'E'
+     | digits '.' digits 'd'
+     | '-' FloatingPointLiteral
+;
+CharacterLiteral: character_literal;
+BooleanLiteral:
+      'true'
+     |'false'
+;
+
+
+
+/*
+fragment ESC
+   : '\\' (["\\/bfnrt] | UNICODE)
+   ;
+fragment UNICODE
+   : 'u' HEX HEX HEX HEX
+   ;
+fragment HEX
+   : [0-9a-fA-F]
+   ;
+fragment SAFECODEPOINT
+   : ~ ["\\\u0000-\u001F]
+   ;
+
+// no leading zeros
+
+fragment EXP
+   : [Ee] [+\-]? INT
+   ;
+
+*/

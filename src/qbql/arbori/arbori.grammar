@@ -1,0 +1,553 @@
+atomic_predicate:
+    '[' node ')' payload         -- node content
+    
+  | node '<' '<' node            -- 2 synonymous syntaxes for the ancestor-descendant relation. 
+  | node '<' '=' node            -- Formally, it is condition for descendant node interval being nested inside ancestor:  
+                                 --       [ancestor <= [descendant & descendant) <= ancestor)
+                                 -- However, this formal condition over node positions not only more cumbersome,
+                                 -- but also less performant
+                                  
+  | node '<'    node             -- former irreflexive order; to become closest ancestor-descendant relationship
+                                                                   
+  | node '=' node                -- consistent with <= :
+                                 -- node1 = node2    is the same as 
+                                 -- node1 <= node2 & node2 <= node1
+                                 
+  | node_position '<' node_position  --   
+  | node_position '<' '=' node_position  --   
+  | node_position '=' node_position  --   same as nodePos1 <= nodePos2 & nodePos2 <= nodePos1
+  | node_position '<' bind_var  --  
+  | node_position '<' '=' bind_var  --  
+  | node_position '=' bind_var  --  
+  | bind_var '<' node_position  --  
+  | bind_var '<' '=' node_position  --  
+  | bind_var '=' node_position  --  
+  | '?' node '=' '?' node           -- token list of left node is identical to token list of the right one (WS & comments ignored)
+  | '?' node '=' string_literal     -- 
+  | bind_var
+  | js_condition
+  | '!' atomic_predicate
+;
+
+bind_var: 
+    ':' identifier
+;
+
+js_condition: 
+     '.' identifier
+   | '.' identifier '(' string_literal ')'
+   | '.' identifier '(' string_literal ',' string_literal ')'
+;
+
+
+node : identifier
+     | node_parent
+     | node_predecessor
+     | node_successor
+     | referenced_node
+     | parent_list
+     --| '(' node ')'
+;
+
+
+node_parent:
+  node '^' 
+;
+
+node_position:
+    '[' attribute
+  | attribute ')'
+  -- ambiguous:
+  | node_position '+' digits
+  | digits '+' node_position 
+;
+
+node_predecessor:
+  node '-' digits
+;
+
+node_successor:
+  node '+' digits
+;
+
+parent_list:
+  node '^' digits
+;
+
+
+payload:
+     identifier                                 -- grammar non-terminal
+   | string_literal                             -- grammar terminal
+   -----------------------------------------not really compelling to have:-----------------------------------------
+   | identifier '[' digits ',' digits ')'       -- grammar auxiliary non-terminal
+   | identifier '[' digits ',' digits ')' '#'   -- e.g. format.prg: [node) on_comp_partitioned_table[68,117)# 
+;    
+
+program:
+    statement
+  | program statement
+;
+
+-- influencing rule priority
+and: '&';
+Or:  '|'; 
+
+predicate: 
+             identifier
+          |  atomic_predicate 
+          |  predicate and predicate  -- result with attributes union
+          |  predicate Or predicate  -- result with attributes intersection
+          |  predicate '-' predicate  -- result with attributes of first argument
+          |  '(' predicate ')'
+          |  aggregate_operator
+          |  '[' header ']'
+          |  '[' ']'
+;
+
+attribute:   identifier
+          |  identifier '.' identifier
+          |  '(' node ')' -- to resolve ambiguity node position vs. node sibling 
+;
+header:      attribute
+          |  header attribute
+          |  header ',' attribute
+;
+
+
+referenced_node:
+      identifier '.' identifier       -- attribute in named predicate
+    -- | referenced_node '.' identifier  -- deeper nesting
+;
+
+statement:
+      include
+    | connect  
+    | rule
+    | js_block
+;
+
+include:
+      'include' identifier
+    | 'include' identifier ';'
+;     
+
+connect:
+      'connect' identifier
+    | 'connect' identifier ';'
+    | 'parse' identifier
+    | 'parse' identifier ';'
+;     
+
+
+rule:
+/*    identifier ':' predicate 
+  |*/ identifier ':' predicate ';'
+  | identifier ':' predicate '-' '>' 
+  | identifier ':' predicate '-' '>' ';'
+  | identifier ':' predicate '-' '>' '{' javascript '}' 
+  | identifier ':' predicate '-' '>' '{' javascript '}' ';'
+;
+
+js_block: '{' javascript '}' 
+;
+
+aggregate_operator:
+  '\' '/' identifier '(' predicate ')'     -- The node containing other nodes
+                                           -- [[   )  )
+                                           -- ^       ^
+|
+  '/' '\' identifier '(' predicate ')'     -- The node contained within
+                                           -- [[[   )  ) )
+                                           --   ^   ^
+|
+  '/' '/' identifier '(' predicate ')'     -- The oldest node 
+                                           -- [   )[   )
+                                           --      ^   ^        										
+|
+  '\' '\' identifier '(' predicate ')'     -- The youngest node 
+                                           -- [   )[   )
+                                           -- ^   ^        										
+;
+
+JStoken:
+    identifier
+   | digits
+   | string_literal
+   --| ';'
+   --| ','
+   --   | ':' !!!! including this would confuse the entire arbori program as JS
+   | '<'
+   | '='
+   | '>'
+   --| '('
+   --| ')'
+   --| '{'
+   --| '}'
+   --| '['
+   --| ']'
+   | '.'
+   | '+'
+   | '-'
+   | '*'
+   | '/'
+   | '!'
+   | '%'
+   | '?'
+   | '&'
+   | '|'
+   | '~'
+   | '^'
+   | ':' 'function'
+   | ':' parenthesized '=' '>'
+;
+
+fragment: JStoken
+   | fragment JStoken
+   | parenthesized
+   | fragment parenthesized
+;
+
+list: fragment
+    | list ',' fragment
+    | list ','
+;
+
+for: 
+    ';' ';'
+  | ';' ';' list
+  | ';' list ';' 
+  | list ';'  ';' 
+  |  ';' list ';' list
+  | list ';'  ';' list
+  | list ';' list ';' 
+  | list ';' list ';' list
+;    
+    
+
+parenthesized:
+     '('  ')' 
+   | '['  ']' 
+   | '{'  '}' 
+   | '(' list ')' 
+   | '(' for ')' 
+   | '[' list ']' 
+   | '{' list '}' 
+   | '{' javascript '}' 
+;   
+
+javascript: 
+     fragment
+   | fragment ';'
+   | javascript ';' fragment 
+   | javascript ';' fragment ';'
+;
+--^^^^^^^^^^^^^^^ slow, https://community.oracle.com/message/15620674
+
+-- ****** adapted from https://github.com/antlr/grammars-v4/blob/master/javascript/ecmascript/JavaScript/ECMAScript.g4
+
+/* TODO: consolidate the two conflicting syntaxes for line comments
+javascript
+--program
+ : sourceElements
+ ;
+
+sourceElements
+ : sourceElement+
+ ;
+
+sourceElement
+ :  jsStatement
+ | functionDeclaration
+ ;
+
+jsStatement
+ : block
+ | variableStatement
+ | emptyStatement
+ | expressionStatement
+ | ifStatement
+ | iterationStatement
+ | continueStatement
+ | breakStatement
+ | returnStatement
+ | withStatement
+ | labelledStatement
+ | switchStatement
+ | throwStatement
+ | tryStatement
+ | debuggerStatement
+ ;
+
+block
+ : '{'  '}'
+ | '{' statementList '}'
+ ;
+
+statementList
+ : jsStatement+
+ ;
+
+variableStatement
+ : 'var' variableDeclarationList ';'?
+ ;
+
+variableDeclarationList
+ : variableDeclaration ( ',' variableDeclaration )*
+ ;
+
+variableDeclaration
+ : identifier initialiser?
+ ;
+
+initialiser
+ : '=' singleExpression
+ ;
+
+emptyStatement
+ : ';'
+ ;
+
+expressionStatement
+ : expressionSequence
+ ;
+
+ifStatement
+ : 'if' '(' expressionSequence ')' jsStatement ( 'else' jsStatement )?
+ ;
+
+iterationStatement
+ : 'do' jsStatement 'while' '(' expressionSequence ')' ';'?                                                 
+ | While '(' expressionSequence ')' jsStatement                                                        
+ | 'for' '(' expressionSequence? ';' expressionSequence? ';' expressionSequence? ')' jsStatement         
+ | 'for' '(' 'var' variableDeclarationList ';' expressionSequence? ';' expressionSequence? ')' jsStatement
+ | 'for' '(' singleExpression In expressionSequence ')' jsStatement                                      
+ | 'for' '(' 'var' variableDeclaration In expressionSequence ')' jsStatement                               
+ ;
+
+continueStatement
+ : 'continue' identifier? ';'?
+ ;
+
+breakStatement:
+   'break' 
+ | 'break' ';'
+ | 'break' identifier 
+ | 'break' identifier ';'
+ ;
+
+returnStatement
+ : 'return' expressionSequence? ';'?
+ ;
+
+withStatement
+ : 'with' '(' expressionSequence ')' jsStatement
+ ;
+
+switchStatement
+ : 'switch' '(' expressionSequence ')' caseBlock
+ ;
+
+caseBlock
+ : '{' caseClauses? ( defaultClause caseClauses? )? '}'
+ ;
+
+caseClauses
+ : caseClause+
+ ;
+
+caseClause
+ : 'case' expressionSequence ':' statementList?
+ ;
+
+defaultClause
+ : 'default' ':' statementList?
+ ;
+
+labelledStatement
+ : identifier ':' jsStatement
+ ;
+
+throwStatement
+ : 'throw'  expressionSequence ';'?
+ ;
+
+tryStatement
+ : 'try' block catchProduction
+ | 'try' block finallyProduction
+ | 'try' block catchProduction finallyProduction
+ ;
+
+catchProduction
+ : 'catch' '(' identifier ')' block
+ ;
+
+finallyProduction
+ : 'finally' block
+ ;
+
+debuggerStatement
+ : 'debugger' ';'?
+ ;
+
+functionDeclaration
+ : 'function' identifier '(' formalParameterList? ')' '{' functionBody '}'
+ ;
+
+formalParameterList
+ : identifier ( ',' identifier )*
+ ;
+
+functionBody
+ : sourceElements?
+ ;
+    
+arrayLiteral
+ : '['  ']'
+ | '[' elision ']'
+ | '['  ',' ']'
+ | '[' elementList  ']'
+ | '['  ',' elision ']'
+ | '[' elementList  elision ']'
+ | '[' elementList ','  ']'
+ | '[' elementList ',' elision ']'
+ ;
+
+elementList
+ : elision? singleExpression ( ',' elision? singleExpression )*
+ ;
+
+elision
+ : ','+
+ ;
+
+objectLiteral
+ : '{' '}'
+ | '{' propertyNameAndValueList ','? '}'
+ ;
+
+propertyNameAndValueList
+ : propertyAssignment ( ',' propertyAssignment )*
+ ;
+    
+propertyAssignment
+ : propertyName ':' singleExpression                            
+ | getter '(' ')' '{' functionBody '}'                          
+ | setter '(' propertySetParameterList ')' '{' functionBody '}' 
+ ;           
+    
+getter
+ : Identifier propertyName
+ ;
+
+setter
+ :  Identifier propertyName
+ ;
+    
+    
+propertyName
+ : identifier
+ | StringLiteral
+ | numericLiteral
+ ;
+    
+propertySetParameterList
+ : identifier
+ ;
+
+arguments
+ : '('  ')'
+ | '(' argumentList ')'
+ ;
+    
+argumentList
+ : singleExpression 
+ | singleExpression ( ',' singleExpression )+
+ ;
+    
+expressionSequence
+ : singleExpression 
+ | singleExpression ( ',' singleExpression )+
+ ;
+
+singleExpression
+ : 'function' identifier? '(' formalParameterList? ')' '{' functionBody '}' 
+ | singleExpression '[' expressionSequence ']'                            
+ | singleExpression '.' identifier                                   
+ | singleExpression arguments                                             
+ | 'new' singleExpression arguments?                                        
+ | singleExpression  '+''+'                         
+ | singleExpression  '-''-'                         
+ | 'delete' singleExpression                                                
+ | 'void' singleExpression                                                  
+ | 'typeof' singleExpression                                                
+ | '+''+' singleExpression                                                  
+ | '-''-' singleExpression                                                  
+ | '+' singleExpression                                                   
+ | '-' singleExpression                                                   
+ | '~' singleExpression                                                   
+ | '!' singleExpression                                                   
+ | singleExpression ( '*' | '/' | '%' ) singleExpression                  
+ | singleExpression ( '+' | '-' ) singleExpression                        
+ | singleExpression ( '<''<' | '>''>' | '>''>''>' ) singleExpression              
+ | singleExpression ( '<' | '>' | '<''=' | '>''=' ) singleExpression          
+ | singleExpression 'instanceof' singleExpression                          
+ | singleExpression 'in' singleExpression                                   
+ | singleExpression ( '=''=' | '!''=' | '=''=''=' | '!''=''=' ) singleExpression      
+ | singleExpression '&' singleExpression                                  
+ | singleExpression '^' singleExpression                                  
+ | singleExpression '|' singleExpression                                  
+ | singleExpression '&''&' singleExpression                                 
+ | singleExpression '|''|' singleExpression                                 
+ | singleExpression '?' singleExpression ':' singleExpression             
+ | singleExpression '=' expressionSequence                                
+ | singleExpression assignmentOperator expressionSequence                 
+ | 'this'                                                                   
+ | identifier                                                             
+ | literal                                                                
+ | arrayLiteral                                                           
+ | objectLiteral                                                          
+ | '(' expressionSequence ')'                                             
+ ;
+
+assignmentOperator
+ : '*''=' 
+ | '/''=' 
+ | '%''=' 
+ | '+''=' 
+ | '-''=' 
+ | '<''<''=' 
+ | '>''>''=' 
+ | '>''>''>''=' 
+ | '&''=' 
+ | '^''=' 
+ | '|''='
+ ;
+
+literal
+ : ( 'null' 
+   | BooleanLiteral
+   | StringLiteral
+   | RegularExpressionLiteral
+   )
+ | numericLiteral
+ ;
+
+numericLiteral
+ : IntegerLiteral
+ |   FloatingPointLiteral
+ | HexIntegerLiteral
+ | OctalIntegerLiteral
+ ;
+
+IntegerLiteral: digits;
+FloatingPointLiteral: 
+       digits '.' digits     
+     | digits '.' digits 'f'
+;  
+--CharacterLiteral:
+StringLiteral: string_literal;
+BooleanLiteral:
+      'true'
+     |'false'
+;   
+*/ 

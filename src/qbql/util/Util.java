@@ -18,7 +18,7 @@ import qbql.lattice.Relation;
 
 public abstract class Util {
 
-    public static String readFile( String file ) throws Exception {
+    public static String readFile( String file ) throws IOException {
         return readFile(new FileInputStream(file));
     }
 

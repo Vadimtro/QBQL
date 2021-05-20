@@ -1,0 +1,104 @@
+include "std.arbori"
+
+prelude: runOnce -> {
+   function trace( str ) {
+       //print(str)
+   }
+   //target.root.printTree()
+
+   var values = []           /*: node.from -> node */
+   var valueNames = []       /*: node.from -> node.from */
+   var nestedValues = []     /*: node.from -> node.from */
+
+   var NamedValue = Java.type('oracle.dbtools.parser.json.NamedValue');
+   var LinkedList = Java.type('java.util.LinkedList');
+   function buildNamedValue( valPos ) {
+       var kPos = valueNames[valPos]
+       if( kPos == null )
+           kPos = valPos
+       var kStr = target.src[kPos].content
+       if( kPos == null || '{' == kStr )
+           kStr = null
+       trace("kStr="+kStr)
+       if( values[valPos].from+1 == values[valPos].to ) {
+           var vStr = target.src[values[valPos].from].content
+           return new NamedValue(kStr,vStr)
+       } else {
+           var children = new LinkedList()
+           var obj = new NamedValue(kStr,children)
+           for (var k in nestedValues ){
+               if( nestedValues[k]==valPos ) {
+                   trace("buildNamedValue: valPos="+valPos+", k="+k)
+                   children.add(buildNamedValue(k))
+               }
+           }
+           return obj
+       }
+   }
+
+   //program.logDimensions("nesting", target)
+}
+
+pairs:
+     [name) identifier
+   & [value) value
+   & name^ = value^
+   & name+2 = value
+-> {
+    var n = tuple.get("name");
+    var v = tuple.get("value");
+    values[v.from] = v
+    valueNames[v.from] = n.from
+    trace("values["+v.from+"] = "+v)
+    trace("valueNames["+v.from+"] = "+n.from)
+}
+
+arrayElements:
+     [value) value
+   & ([value-1) '[' | [value-1) ',')
+-> {
+    var v = tuple.get("value");
+    values[v.from] = v
+    valueNames[v.from] = v.from
+    trace("values["+v.from+"] = "+v)
+    trace("valueNames["+v.from+"] = "+v.from)
+}
+
+nesting: pValue < cValue
+   & [pValue) value
+   & [cValue) value
+ -> {
+    var pValue = tuple.get("pValue");
+    var cValue = tuple.get("cValue");
+    nestedValues[cValue.from] = pValue.from
+    trace("nestedValues["+cValue.from+"] = "+pValue.from)
+}
+
+values: [value) value;
+
+root: \/value(values)
+ -> {
+    var root = tuple.get("value");
+    values[root.from] = root
+    trace("*** end of interpretor ****")
+    struct.ret = buildNamedValue(root.from)
+}
+
+
+queryEvents: false & runOnce -> {
+    if( struct.queryEvents ) {
+        print(' *** JSON query output *** ')
+        for (var k in struct.ret.composite ) {
+            var namedObj = struct.ret.composite[k]
+            trace(namedObj)
+            for (var kk in namedObj.composite ) {
+                var elem = namedObj.composite[kk]
+                if( '"description"' == elem.name) {
+                    var description = elem.atomic
+                    if( 0 < description.indexOf("Napol") )
+                        print(namedObj)
+                }
+            }
+        }
+    }
+}

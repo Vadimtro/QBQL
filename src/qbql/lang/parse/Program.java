@@ -16,6 +16,8 @@ import qbql.parser.Lex;
 import qbql.parser.LexerToken;
 import qbql.parser.ParseNode;
 import qbql.parser.RuleTuple;
+import qbql.parser.Token;
+import qbql.parser.Parser.Tuple;
 import qbql.util.Pair;
 import qbql.util.Util;
 
@@ -62,7 +64,22 @@ public class Program {
 	public static Earley getArboriParser() throws IOException  {
 		Set<RuleTuple> rules = getRules();
         //RuleTuple.printRules(rules);
-        Earley testParser = new Earley(rules);
+        Earley testParser = new Earley(rules) {
+			@Override
+			protected boolean isScannedSymbol( int y, List<LexerToken> src, int pos, Tuple t, Integer suspect ) {
+				int symbol = t.content(pos);
+				LexerToken token = src.get(y);
+				if( symbol == digits && token.type == Token.DIGITS )
+					return true;
+				if( symbol == string_literal && token.type == Token.QUOTED_STRING )
+					return true;
+				if( symbol == identifier && token.type == Token.DQUOTED_STRING )
+					return true;
+				return suspect != null && suspect == symbol 
+					|| isIdentifier(y,src, symbol, suspect) && (suspect==null||notConfusedAsId(suspect,t.head,pos))
+				;
+			}
+        };
         atomic_predicate = testParser.symbolIndexes.get("atomic_predicate"); //$NON-NLS-1$
         bind_var = testParser.symbolIndexes.get("bind_var"); //$NON-NLS-1$
         backslash = testParser.symbolIndexes.get("'\\'"); //$NON-NLS-1$
