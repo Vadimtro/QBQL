@@ -10,9 +10,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import qbql.parser.Cell;
 import qbql.parser.Earley;
 import qbql.parser.Lex;
+import qbql.parser.Parser.EarleyCell;
 import qbql.parser.Parser.Tuple;
 import qbql.parser.LexerToken;
 import qbql.parser.Matrix;
@@ -59,8 +59,7 @@ public class SyntaxError extends AssertionError {
     
 	/**
      * @param input -- sql text
-     * @param grammarSymbols -- expected grammar symbols, e.g. "select"
-     * http://st-doc.us.oracle.com/sql_grammar/sqlbnf/bnffiles/select.htm
+     * @param grammarSymbols -- expected grammar symbols, e.g. "expr"
      * @return null if valid input, otherwise
      * 		   syntax error message structured as SyntaxError 
      */
@@ -68,7 +67,7 @@ public class SyntaxError extends AssertionError {
         return checkSyntax(input, grammarSymbols, src, earley, matrix, "^^^", "SyntaxError_DetailedMessage");
     }
     public static SyntaxError checkSyntax( String input, String[] grammarSymbols, List<LexerToken> src, Earley earley, Matrix matrix, String marker, String format) {
-    	Cell top = matrix.get(0, src.size());
+    	EarleyCell top = matrix.get(0, src.size());
         
         if( top != null ) {
             for( String s : grammarSymbols ) {
@@ -135,7 +134,7 @@ public class SyntaxError extends AssertionError {
         if( y < 0 )
             return;
         for( int x = 0; x <= y; x++ ) {
-            Cell cell = matrix.get(x,y);
+            EarleyCell cell = matrix.get(x,y);
             if( cell != null ) {
             	for( int i = 0; i < cell.size(); i++ ) {
             		int rule = cell.getRule(i);

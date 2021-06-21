@@ -22,10 +22,7 @@ import qbql.util.Util;
 
 public class Program {
 
-    public static void main( String[] args ) throws Exception {
-        Set<RuleTuple> rules = latticeRules();
-        RuleTuple.printRules(rules);
-    }
+    final boolean visualize = false;
 
     //// READ RULES
 
@@ -208,7 +205,7 @@ public class Program {
 		testParser.swapRules(rule2, rule3);	
 	}
 	
-    public static Set<RuleTuple> latticeRules() throws Exception  {
+    public static List<RuleTuple> latticeRules() throws Exception  {
         String input;
         try {
             input = Util.readFile(Program.class, "lattice.grammar");
@@ -1086,7 +1083,8 @@ public class Program {
         List<LexerToken> src =  new Lex().parse(prg);
         
         Visual visual = null;
-        //visual = new Visual(src, earley);
+        if( visualize )
+        	visual = new Visual(src, earley);
         //LexerToken.print(src);
         
         Matrix matrix = new Matrix(earley);

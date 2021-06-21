@@ -159,7 +159,7 @@ AtOneSide
  ^  [xb yb] 3 3) = R01.
 
 
-(
+((
      (Points /^ "x=x1" /^ "y=y1") 
    ^ (Points /^ "x=x2" /^ "y=y2") 
    ^ (Points /^ "x=xa" /^ "y=ya") 
@@ -168,7 +168,7 @@ AtOneSide
 ) /= (
      (Points /^ "x=xa" /^ "y=ya") 
    ^ (Points /^ "x=xb" /^ "y=yb")
-)^ ("x1=x2" ^ "y1=y2")'
+))^ ("x1=x2" ^ "y1=y2")'
 = [x1  x2  y1  y2]
    0  0  1  3
    0  0  3  1

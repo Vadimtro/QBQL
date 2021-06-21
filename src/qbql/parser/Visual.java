@@ -39,6 +39,7 @@ import javax.swing.JSplitPane;
 import javax.swing.Scrollable;
 import javax.swing.text.html.HTMLEditorKit;
 
+import qbql.parser.Parser.EarleyCell;
 import qbql.util.Util;
 
 /**
@@ -199,7 +200,7 @@ public class Visual implements ActionListener {
 			}
             int x0 = -1;
             int y0 = -1;
-            Cell output = null;
+            EarleyCell output = null;
             int index = 0;
             int ambig = 0;
             public Dimension getPreferredScrollableViewportSize() {
@@ -314,7 +315,7 @@ public class Visual implements ActionListener {
         for( int j = 0; j < Y; ++j)
             for( int i = 0; i <= X; ++i) {
                 int z = (j * X + i);
-                Cell tmp = matrix.get(i/zoom, j/zoom);
+                EarleyCell tmp = matrix.get(i/zoom, j/zoom);
                 if( tmp!=null ) {
                     int completeTime = Util.lY(visited[i/zoom][j/zoom]);
                     int otherTime = Util.lX(visited[i/zoom][j/zoom]);

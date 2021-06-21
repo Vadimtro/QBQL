@@ -1,6 +1,5 @@
 package qbql.parser.json;
 
-//import oracle.sql.CHAR;
 
 public class Util {
     public static String cleanText( String input ) {

@@ -112,11 +112,11 @@ public class Program {
         string_literal = testParser.symbolIndexes.get("string_literal"); //$NON-NLS-1$
 		return testParser;
 	}
-	private static Set<RuleTuple> getRules() throws IOException  {
+	private static List<RuleTuple> getRules() throws IOException  {
         String input = Util.readFile(Program.class, "arbori.grammar"); //$NON-NLS-1$
         List<LexerToken> src = new Lex(false,true,false,new HashMap()).parse(input); 
         ParseNode root = Grammar.parseGrammarFile(src, input);
-        Set<RuleTuple> ret = new TreeSet<RuleTuple>();
+        List<RuleTuple> ret = new LinkedList<RuleTuple>();
         Grammar.grammar(root, src, ret);
         return ret;
     }

@@ -14,8 +14,8 @@ public class Run {
             prg = Util.readFile(args[0]);
         } else {
             //prg = Util.readFile(Run.class,"strings.prg");
-            prg = Util.readFile(Run.class,"programs/current.prg");     
-            //prg = Util.readFile(Run.class,"programs/dependency.qbql");     
+            //prg = Util.readFile(Run.class,"programs/current.prg");     
+            prg = Util.readFile(Run.class,"programs/dependency.qbql");     
             //prg = Util.readFile(Run.class,"Partition.prg");     
             //prg = Util.readFile(Run.class,"Sims.db"); 
             //prg = "include class2go.db; Eats /^ Person /^ \"pizza ='mushroom'\";";
