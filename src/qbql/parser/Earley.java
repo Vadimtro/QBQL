@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -180,10 +181,10 @@ public class Earley extends Parser  {
 	 * Instantiate parser
 	 * @param originalRules -- grammar
 	 */
-    public Earley( Set<RuleTuple> originalRules ) {
+    public Earley( Collection<RuleTuple> originalRules ) {
         this(originalRules, true);
     }
-	public Earley( Set<RuleTuple> originalRules, boolean precomputePredictions ) {
+	public Earley( Collection<RuleTuple> originalRules, boolean precomputePredictions ) {
 		super(originalRules);
         identifier = symbolIndexes.get("identifier");
         try { 
@@ -359,7 +360,7 @@ public class Earley extends Parser  {
         if( matrix.visual != null )
             t1 = System.nanoTime();
 		long[] content = null;
-		Cell candidateRules = matrix.get(x,y);
+		EarleyCell candidateRules = matrix.get(x,y);
 		if( candidateRules == null )
 			return false;
 		for( int j = 0; j < candidateRules.size(); j++ ) {
@@ -426,16 +427,16 @@ public class Earley extends Parser  {
             t1 = System.nanoTime();
 		int y = matrix.lastY();
 		
-		EarleyCell cell = (EarleyCell)matrix.get(y,y);
+		EarleyCell cell = matrix.get(y,y);
 		long[] content = null;
 		if( cell != null )
 			content = cell.content;
 		
 		int[] symbols = new int[0];  // = null --> possible NPE in "for( int symbol : symbols )" 
-        Map<Integer,Cell> xRange = matrix.getXRange(y);
-        //SortedMap<Long,Cell> range = matrix.subMap(Util.lPair(0, y), true, last, true);
+        Map<Integer,EarleyCell> xRange = matrix.getXRange(y);
+        //SortedMap<Long,EarleyCell> range = matrix.subMap(Util.lPair(0, y), true, last, true);
         for( int mid : xRange.keySet() ) {
-        	Cell candidateRules = matrix.get(mid,y);
+        	EarleyCell candidateRules = matrix.get(mid,y);
         	for( int j = 0; j < candidateRules.size(); j++ ) {
         		int pos = candidateRules.getPosition(j);
         		int ruleNo = candidateRules.getRule(j);
@@ -501,7 +502,7 @@ public class Earley extends Parser  {
                 if( matrix.visual != null )
                     t1 = System.nanoTime();
                 
-                Cell pres = matrix.get(x, mid);
+                EarleyCell pres = matrix.get(x, mid);
                 if( pres == null ) {
                     if( matrix.visual != null ) {
                         long t2 = System.nanoTime();
@@ -611,7 +612,7 @@ public class Earley extends Parser  {
 	    if( selected && x+y!=0) {
 	    	if( mid < x || x == y ) {
 		    	sb.append("<i> predict from </i>");
-		    	Cell bc = matrix.get(mid, y);
+		    	EarleyCell bc = matrix.get(mid, y);
 	        	for( int j = 0; j < bc.size(); j++ ) {
 	        		int bp = bc.getPosition(j);
 	        		int br = bc.getRule(j);
@@ -626,7 +627,7 @@ public class Earley extends Parser  {
 	        	}
 	    	} else if( y < mid ) {
 		    	sb.append("<i> scan from </i>");
-		    	Cell bc = matrix.get(x, y-1);
+		    	EarleyCell bc = matrix.get(x, y-1);
 	        	for( int j = 0; j < bc.size(); j++ ) {
 	        		int bp = bc.getPosition(j);
 	        		int br = bc.getRule(j);
@@ -642,8 +643,8 @@ public class Earley extends Parser  {
 	    	} else {
 		    	sb.append("<i> complete from </i>");
 		    	boolean secondTime = false;
-		    	Cell pre = matrix.get(x, mid);
-		    	Cell post = matrix.get(mid, y);
+		    	EarleyCell pre = matrix.get(x, mid);
+		    	EarleyCell post = matrix.get(mid, y);
 	        	for( int i = 0; i < pre.size(); i++ ) 
 	        		for( int j = 0; j < post.size(); j++ ) {
                         int dotPre = pre.getPosition(i);
@@ -703,7 +704,7 @@ public class Earley extends Parser  {
 
 
     @Override
-    public ParseNode treeForACell( List<LexerToken> src, Matrix m, Cell cell, int x, int y/*, Map<Long,ParseNode> explored*/ ) {
+    public ParseNode treeForACell( List<LexerToken> src, Matrix m, EarleyCell cell, int x, int y/*, Map<Long,ParseNode> explored*/ ) {
 		//explored = new HashMap<Long,ParseNode>();
         int rule = -1;
         int pos = -1;
@@ -761,7 +762,7 @@ public class Earley extends Parser  {
 		//System.out.println("rule#"+rule+"="+rules[rule].toString(pos));
 		if( pos != 0 ) {
 			long demotedRule = makeMatrixCellElem(rule,pos-1, rules[rule]);
-			TreeMap<Integer, Cell> cellsAtY = (TreeMap<Integer, Cell>) m.getXRange(y);
+			TreeMap<Integer, EarleyCell> cellsAtY = (TreeMap<Integer, EarleyCell>) m.getXRange(y);
 			for( int mid : isAsc? cellsAtY.keySet(): cellsAtY.descendingKeySet() ) {
 				//if( mid < x )
 					//break;
@@ -769,15 +770,16 @@ public class Earley extends Parser  {
 				EarleyCell pre = (EarleyCell) m.get(x,mid);
 				if( pre == null )
 					continue;
-				Cell post =  m.get(mid,y);
+				EarleyCell post =  m.get(mid,y);
 				if( post == null )
 					continue;
 
 				if( pre.content[Array.indexOf(pre.content,demotedRule)] == demotedRule ) {
 					//for( int j = post.size()-1; 0 <= j ; j-- ) {
-					for( int j = 0; j <= post.size()-1 ; j++ ) {
-						int rJ = post.getRule(j);
-						int pJ = post.getPosition(j);
+					//for( int j = 0; j <= post.size()-1 ; j++ ) {
+					for( long l : post.orderedContent() ) {
+						int rJ = ruleFromEarleyCell(l);
+						int pJ = posFromEarleyCell(l);
 						//Tuple tPost = rules[rJ];
 						if( rules[rJ].rhs.length != pJ )
 							continue;
@@ -793,6 +795,9 @@ public class Earley extends Parser  {
 							ret.rgt.parent = ret;
 							return ret;
 						} else if( rJ != rule || pJ != pos ) { //  StackOverflow
+							//if(mid==8 && y==30) {
+							    //System.out.println("mid="+mid+",y="+y+"   "+rules[rJ].toString(pJ));
+							//}
 							ParseNode ret = tree(src,m, mid,y,rJ,pJ/*, explored*/);
 							if( rules[rule].rhs.length == pos )
 								ret.addContent(rules[rule].head);
@@ -805,8 +810,7 @@ public class Earley extends Parser  {
 		}
 		throw new AssertionError("unwind "+rules[rule].toString(pos)+" @["+x+","+y+")");
     }
-
-
+	
     public class PredictedTerminals implements Serializable {
         private boolean isValid = true;
         int[] symbols = null;

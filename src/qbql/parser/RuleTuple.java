@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.URL;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -50,7 +51,7 @@ public class RuleTuple implements Comparable, Serializable {
         if( cmp!=0 )
             return cmp;
         if( rhs.length != src.rhs.length )
-            return rhs.length - src.rhs.length;
+            return -(rhs.length - src.rhs.length);
         for(int i=0; i<rhs.length; i++)
             if( rhs[i].compareTo(src.rhs[i]) != 0 )
                 return rhs[i].compareTo(src.rhs[i]);
@@ -114,7 +115,7 @@ public class RuleTuple implements Comparable, Serializable {
         in.close();
         return rules;
     }
-    public static void printRules( Set<RuleTuple> rules ) {
+    public static void printRules( Collection<RuleTuple> rules ) {
         RuleTuple predecessor = null;
         for( RuleTuple rule : rules ) {
             System.out.println(rule.toHTML(predecessor)); 

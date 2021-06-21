@@ -73,7 +73,7 @@ public class Grammar {
         List<LexerToken> src = (new Lex()).parse(input); 
         ParseNode root = Grammar.parseGrammarFile(src, input);
         root.printTree();
-        Set<RuleTuple> rules = Grammar.grammar(root, src);
+        List<RuleTuple> rules = Grammar.grammar(root, src);
         RuleTuple.printRules(rules);
 	}
     
@@ -100,19 +100,19 @@ public class Grammar {
         return root;
     }
     
-    public static void grammar( ParseNode root, List<LexerToken> src, Set<RuleTuple> grammar ) {
+    public static void grammar( ParseNode root, List<LexerToken> src, List<RuleTuple> grammar ) {
         if( root.contains(rule) ) 
             rule(root, src, grammar); 
         else for( ParseNode child: root.children() ) 
             grammar(child, src, grammar);            
     }
-    public static Set<RuleTuple> grammar( ParseNode root, List<LexerToken> src ) {
-        Set<RuleTuple> rules = new TreeSet<RuleTuple>();
+    public static List<RuleTuple> grammar( ParseNode root, List<LexerToken> src ) {
+    	List<RuleTuple> rules = new LinkedList<RuleTuple>();
         grammar(root, src, rules);
         return rules;
     }
 
-	private static void rule( ParseNode node, List<LexerToken> src, Set<RuleTuple> grammar ) {
+	private static void rule( ParseNode node, List<LexerToken> src, List<RuleTuple> grammar ) {
         String header = null;
         Set<RuleTuple> disj = null;
         for( ParseNode child: node.children() ) {
@@ -132,7 +132,7 @@ public class Grammar {
         	grammar.add(new RuleTuple(header, new String[]{}));
     }
 
-    private static void delete( ParseNode node, List<LexerToken> src, Set<RuleTuple> grammar ) {
+    private static void delete( ParseNode node, List<LexerToken> src, List<RuleTuple> grammar ) {
         String var = null;
         for( ParseNode child: node.children() ) 
             if( var==null && child.contains(variable) ) {

@@ -339,10 +339,15 @@ x < y -> x ⊗ z < y ⊗ z.
 --fail: x ^ (y ⊗ z) = (x ^ y) ⊗ (x ^  z).
 */
 
---(x ^ y) v (x ^ z) = x ^ ( ((x v z) ^ y) v ((x v y) ^ z) ).
-
-x <NotMatching> y  = <NOT>(<NOT>(x) v (y ^ x)). -- definition
-
-(x ^ y) v (x <NotMatching> y) = x.              -- check assertion against Figure1.db
-(x ^ y) ^ (x <NotMatching> y) = (x ^ y) ^ R00.  -- check assertion against Figure1.db
+a v b=R00 &
+b v c=R00 &
+a v c=R00
+->
+(a^c)v(((a^b)v r)^( (b^c)v( ((a^c)v r)
+^
+((a^b)v ( ((b^c)v r)^( (a^c)v(((b^c)v r)^((a^b)v r)) ) )) ) ) )=
+(a^c)v( ((a^b)v ( ((b^c)v r)^( (a^c)v(((b^c)v r)^((a^b)v r)) ) ))
+^
+( (b^c)v(((a^b)v r)^((a^c)v r)) ) )
+.
 

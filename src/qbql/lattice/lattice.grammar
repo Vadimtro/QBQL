@@ -1,3 +1,9 @@
+"not to confuse with userOper":
+             expr '<' expr
+          |  expr '>' expr
+;
+
+
 almostDisj:  expr '/' '1' expr
 ;
 
@@ -173,8 +179,7 @@ project:  'project' header_cs expr
 ;
 
 proposition:     
-             "not to confuse with userOper"
-          |  implication
+             implication
           |  expr '=' expr
           |  expr '~' expr
           |  partition '<' partition
@@ -184,6 +189,7 @@ proposition:
           |  expr '<' '~' expr
           |  expr '>' '~' expr
           |  oper '!' '=' oper
+          |  "not to confuse with userOper"   -- heuristic optimization fail
 ;
 
 program:   stmt  
@@ -251,8 +257,4 @@ value:       digits
           |  /* nested relation */ parExpr          
 ;
 
-"not to confuse with userOper":
-             expr '<' expr
-          |  expr '>' expr
-;
 

@@ -2,13 +2,15 @@ package qbql.parser;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import qbql.parser.Cell;
 import qbql.parser.LexerToken;
 import qbql.parser.Matrix;
 import qbql.parser.ParseNode;
@@ -32,7 +34,7 @@ public abstract class Parser implements Serializable {
     
     //int[] auxSymbols = new int[0];
             
-    public Parser( Set<RuleTuple> originalRules ) {
+    public Parser( Collection<RuleTuple> originalRules ) {
         extractSymbols(originalRules);
 		rules = new Tuple[originalRules.size()];
 		int p = 0;
@@ -52,7 +54,7 @@ public abstract class Parser implements Serializable {
     public Parser() {
     }
 
- 	protected void extractSymbols( Set<RuleTuple> symbolicRules ) {
+ 	protected void extractSymbols( Collection<RuleTuple> symbolicRules ) {
         Set<String> tmpSymbols = new TreeSet<String>();
         tmpSymbols.add("!nil"); //$NON-NLS-1$
         for( RuleTuple ct : symbolicRules ) {
@@ -125,7 +127,7 @@ public abstract class Parser implements Serializable {
     		if( len == 0 )
     			return new ParseNode(0,len, -1, this);
 
-    		Cell cell = matrix.get(0,len);
+    		EarleyCell cell = matrix.get(0,len);
     		if( cell != null && 0 < cell.size() ) {
     			ParseNode root = treeForACell(src, matrix, cell, 0, len/*, explored*/);
     			if( root != null )
@@ -184,7 +186,7 @@ public abstract class Parser implements Serializable {
 
 	public abstract ParseNode parse( List<LexerToken> src );
         
-    abstract ParseNode treeForACell( List<LexerToken> src, Matrix m, Cell cell, int x, int y/*, Map<Long,ParseNode> explored*/ );
+    abstract ParseNode treeForACell( List<LexerToken> src, Matrix m, EarleyCell cell, int x, int y/*, Map<Long,ParseNode> explored*/ );
 
     abstract void parse( List<LexerToken> src, Matrix matrix );
         
@@ -306,7 +308,16 @@ public abstract class Parser implements Serializable {
             cmp = rhs.length-src.rhs.length;
             if( cmp!=0 )
                 return cmp;
-            for( int i = 0; i < rhs.length; i++ ) {				
+            for( int i = 0; i < rhs.length; i++ ) {
+            	String s = allSymbols[rhs[i]];
+            	String ss = allSymbols[src.rhs[i]];
+            	//System.out.println(s+" ?= "+ss);
+				boolean b = s.charAt(0)=='"';
+            	boolean bs = ss.charAt(0)=='"';
+            	if( b && !bs)
+            		return 1;
+            	if( bs && !b )
+            		return -1;
                 cmp = rhs[i]-src.rhs[i];
                 if( cmp!=0 )
                     return cmp;                    
@@ -358,37 +369,50 @@ public abstract class Parser implements Serializable {
     }
 
 
-    public class EarleyCell implements Cell {
+    public class EarleyCell /*implements Cell*/ {
     	long[] content = null;
     	public EarleyCell( long[] content ) {
     		this.content = content;
     	}
 
-    	@Override
     	public int getRule( int index ) {
     		return ruleFromEarleyCell(content[index]);
     	}
 
-        @Override
         public int getPosition( int index ) {
              return posFromEarleyCell(content[index]);
     	}
     	
-        @Override
     	public int size() {
     	    if( content == null )
     	        return 0;
     		return content.length;
     	}
 
-        @Override
     	public long[] getContent() {
     		return content;
     	}   	
-        @Override
         public void insertContent( long cellElem ) {
             content = Array.insert(content, cellElem);
         }
+        
+        
+    	public LinkedList<Long> orderedContent() {
+    		LinkedList<Long> ret = new LinkedList<Long>();
+    		for( long l : getContent() )
+    			ret.add(l);
+        	ret.sort(new Comparator<Long>() {
+				@Override
+				public int compare( Long o1, Long o2 ) {
+					Tuple t1 = rules[ruleFromEarleyCell(o1)];
+					Tuple t2 = rules[ruleFromEarleyCell(o2)];
+					return t2.compareTo(t1);
+				}        		
+        	});
+        	
+    		return ret;
+    	}   	
+
         
         @Override
     	public String toString() {

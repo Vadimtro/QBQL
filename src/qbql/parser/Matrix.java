@@ -7,12 +7,12 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.TreeMap;
 
-import qbql.parser.Cell;
 import qbql.parser.Visual;
+import qbql.parser.Parser.EarleyCell;
 import qbql.parser.Parser.Tuple;
 
 /**
- * Major data structure for both Earley and CYK methods
+ * Major data structure for Earley method
  * @author Dim
  */
 public class Matrix {
@@ -31,7 +31,7 @@ public class Matrix {
      * @return
      */
     public boolean contains( int x, int y, int symbol ) {
-        Cell cell = get(x, y);
+        EarleyCell cell = get(x, y);
         if( cell == null )
             return false;
         for( int i = 0; i < cell.size() ; i++ ) {
@@ -58,7 +58,7 @@ public class Matrix {
 	}
 
 	    
-    private Map<Integer,Cell>[] cells = null;
+    private Map<Integer,EarleyCell>[] cells = null;
     private int lastY = 0;
         
     public int[] allXs = null;
@@ -69,26 +69,26 @@ public class Matrix {
     }
 
     //former TreeMap.get(Service.lPair(x, y));
-    public Cell get( int x, int y ) {
+    public EarleyCell get( int x, int y ) {
         return cells[y].get(x);
     }
-    public void put( int x, int y, Cell content ) {
+    public void put( int x, int y, EarleyCell content ) {
         if( lastY < y )
             lastY = y;
         cells[y].put(x,content);
     }
     
-    public void initCells( int length ) {
+    public void initEarleyCells( int length ) {
         cells = new Map[length+1];
         for( int i = 0; i < cells.length; i++ ) 
-            cells[i] = new TreeMap<Integer,Cell>();        
+            cells[i] = new TreeMap<Integer,EarleyCell>();        
     }
     
     public int lastY() {
         return lastY;
     }
     
-    public Map<Integer, Cell> getXRange( int y ) {
+    public Map<Integer, EarleyCell> getXRange( int y ) {
         return cells[y];
     }
     
@@ -100,7 +100,7 @@ public class Matrix {
     public String toString() throws RuntimeException {
         StringBuffer ret = new StringBuffer();
         for( int y = 0; y < cells.length; y++ ) for( int x : cells[y].keySet() ) {
-            Cell output = get(x, y);
+            EarleyCell output = get(x, y);
             if( output ==  null ) {
                 System.out.println(".\n");
                 continue;
@@ -125,7 +125,7 @@ public class Matrix {
 
 
     
-    public List<Integer> getEarleyBackptrs( int x, int y, Cell cell, int index ) {
+    public List<Integer> getEarleyBackptrs( int x, int y, EarleyCell cell, int index ) {
         List<Integer> ret = new ArrayList<Integer>();
         if( x == y && x == 0 ) {
             ret.add(x);
@@ -139,13 +139,13 @@ public class Matrix {
         if( x == y ) {
             //long start = Service.lPair(0,y);
             //long end = Service.lPair(x,y);
-            Map<Integer,Cell> xRange = cells[y];
-            //SortedMap<Long,Cell> range = subMap(start, true, end, true);
+            Map<Integer,EarleyCell> xRange = cells[y];
+            //SortedMap<Long,EarleyCell> range = subMap(start, true, end, true);
             for( int mid : xRange.keySet() ) {
                 //int mid = Service.lX(key);
                 if( x < mid )
                     continue;
-                Cell candidate = get(mid,x);
+                EarleyCell candidate = get(mid,x);
                 if( candidate==null )
                     continue;
                 for( int i = 0; i < candidate.size(); i++ ) {
@@ -162,7 +162,7 @@ public class Matrix {
         }
         
         // scan
-        Cell candidate = get(x,y-1);
+        EarleyCell candidate = get(x,y-1);
         if( candidate!=null ) 
             for( int i = 0; i < candidate.size(); i++ ) {
                 int candRule = candidate.getRule(i);
@@ -185,15 +185,15 @@ public class Matrix {
         // complete
         //long start = Service.lPair(x,y);
         //long end = Service.lPair(y,y);
-        Map<Integer,Cell> xRange = cells[y];
-        //SortedMap<Long,Cell> range = subMap(start, true, end, true);
+        Map<Integer,EarleyCell> xRange = cells[y];
+        //SortedMap<Long,EarleyCell> range = subMap(start, true, end, true);
         for( int mid : xRange.keySet() ) {
             if( mid < x || y < mid )
                 continue;
-            Cell pre = get(x,mid);
+            EarleyCell pre = get(x,mid);
             if( pre==null )
                 continue;
-            Cell post = get(mid,y);
+            EarleyCell post = get(mid,y);
             if( post==null )
                 continue;
             nextCell:      
@@ -241,7 +241,7 @@ public class Matrix {
 	 * @return
 	 */
 	public boolean recognized( int x, int y, int rule, int pos ) {
-		Cell cell = get(x,y);
+		EarleyCell cell = get(x,y);
 		for( int i = 0; i < cell.size(); i++ ) {
 			int r = cell.getRule(i);
 			if( r != rule )
@@ -253,6 +253,11 @@ public class Matrix {
 		return false;
 	}
 	
+    public void initCells( int length ) {
+        cells = new Map[length+1];
+        for( int i = 0; i < cells.length; i++ ) 
+            cells[i] = new TreeMap<Integer,EarleyCell>();        
+    }
 
 }
 
