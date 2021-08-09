@@ -475,6 +475,12 @@ z^[]=[p r])
 
 /* in partial order via /< set intersection join is galois connected with set containment join 
 (losely speaking relational division being inverse of cartesian product)
+
+left-adjoint:
+c < a /< b 
+-> 
+c ^ a < b.
+
 x /< x = R01.
 x /< y = R01 & y /< x = R01 -> y=x.
 x /< y = R01 & y /< z = R01 -> x /< z = R01.

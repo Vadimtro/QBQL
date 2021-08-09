@@ -23,12 +23,14 @@ import qbql.util.Util;
 
 public class ExprGen {
     static boolean singleSolution = true;
-    //static {singleSolution = false;}
+    static {singleSolution = false;}
 
     static String[] zilliaryOps;
     final static String[] unaryOps = new String[] {
-        "<NOT>",
-        //"<INV>",
+            //"<NOT>",
+            //"<INV>",
+    		//"<hCompl>",
+    		//"<mCompl>",
         //"<EQ_CLOSE>",
         //"<CP_CLOSE>",
         //"<sq>",
@@ -41,6 +43,8 @@ public class ExprGen {
 
         final String[] constants = new String[] {
                 "R00",
+                //"R01",
+                //"R10",
                 //"R11",
                 //"S",
                 //"R11",             
@@ -58,23 +62,24 @@ public class ExprGen {
                 //"<and>",
                 //"<\"and\">",
                 //"<OR>",
-                //"/^",
+                "/^",
                 //"/>",
-                //"/<",
+                "/<",
                 //"/=",
-            //"/0",
-            //"/1",
+                //"<\"->\">",
+            "/0",
+            "/1",
             //"/!",
         };
         final String[] binaryRels = new String[] {
-                //"<",
-                "=",
+                "<",
+                //"=",
                 //"!=",
                 //"&",
                 //"|"
         };
         //String skipTo = "((<NOT>(y) ^ <NOT>(y)) ^ (<NOT>(y) ^ <NOT>(y)))";
-        String skipTo = "(((((((a ^ a) ^ a) ^ a) ^ a) ^ a) ^ a) ^ a)";
+        String skipTo = "(((((F ^ F) ^ F) ^ F) ^ F) ^ F)";
         skipTo = null;
         
         //Profile.sample(60000, 100);
@@ -119,7 +124,7 @@ public class ExprGen {
                 binaryRelsOps[i+binaryOps.length] = binaryRels[i];
             }              
 
-        int threads = 1;//Runtime.getRuntime().availableProcessors();
+        int threads = Runtime.getRuntime().availableProcessors()-1;
         if(  java.lang.management.ManagementFactory.getRuntimeMXBean(). getInputArguments().toString().contains("-agentlib:jdwp") )        	
         	threads = 1;
         System.out.println("Using " + threads + " threads");

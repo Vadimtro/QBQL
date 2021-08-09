@@ -1,6 +1,6 @@
 -- 2 different styles of include
-include "c:/users/dim/git/qbql/src/qbql/apps/db/Figure1.db"; 
---include "c:/users/dim/git/qbql/src/qbql/apps/db/DependencyTheory.db";
+--include "c:/users/dim/git/qbql/src/qbql/apps/db/Figure1.db"; 
+include "c:/users/dim/git/qbql/src/qbql/apps/db/DependencyTheory.db";
 include udf.def;  
 --include volume.db;
 
@@ -54,64 +54,13 @@ CB = Colored v ([name]B ^ ([color])');
  1 a
  0 c
 ;
-*/
 
 
-/*x /< y = <NOT>( <INV>(x v y) <and> (x ^ <NOT>y) ).
 
-x <mult> y = x ^ y.
-x <plus> y = x <OR> y.
+x /< y = <NOT>( <INV>(x v y) <and> (x ^ <NOT>y) ).
 
--- semiring
-x <plus> y = y <plus> x.
-x <plus> (y <plus> z) = (x <plus> y) <plus> z.
-x <plus> R00 = x.
 
-x <mult> R01 = x.
-x <mult> (y <mult> z) = (x <mult> y) <mult> z.
-x <mult> (y <plus> z) = (x <mult> y) <plus> (x <mult> z).
 
-x <mult> R00 = R00.
-
-x ^ (y v z) = (x ^ (z v (R00 ^ y))) v (x ^ (y v (R00 ^ z))).
-(x ^ y) v (x ^ z) =  x ^ ( ((x v z) ^ y) v ((x v y) ^ z) ).
-(R00 ^ (x ^ (y v z))) v (y ^ z) = ((R00 ^ (x ^ y)) v z) ^ ((R00 ^ (x ^ z)) v y).
-*/
-
-/*
-M_PQ=[p  q] v MaierP137;
-M_PR=[p  r] v MaierP137;
-M_PQjM_PR = M_PQ ^ M_PR;
-M_RQ=[r  q] v MaierP137;
-M_PQjM_RQ = M_PQ ^ M_RQ;
-M_PRjM_RQ = M_PR ^ M_RQ;
-
-MaierP137 = M_PQ ^ M_PRjM_RQ.
-MaierP137 = M_PR ^ M_PQjM_RQ.
-MaierP137 = 
-(M_PQ v M_PQjM_RQ) ^ 
-(M_PQ v M_PR) ^
-(M_PRjM_RQ v M_PR) ^
-(M_PRjM_RQ v M_PQjM_RQ). 
-M_PQ v M_PQjM_RQ = M_PQ.
-M_PQ v M_PR;
-M_PRjM_RQ v M_PR = M_PR.
-PQR2 = M_PRjM_RQ v M_PQjM_RQ;
---Q v [p  q];
---Q v [p  r];
-PQR2_PQ = PQR2 v [p  q];
-PQR2_PR = PQR2 v [p  r];
-M_RQ = PQR2 v [r  q].
-PQR2 = PQR2_PQ ^ M_RQ.
-PQR2 = M_RQ ^ PQR2_PR.
---PQR2 = PQR2_PQ ^ PQR2_PR.
-PQR2_PQ v M_RQ;
-PQR2_PQ v PQR2_PR;
-M_RQ v M_RQ = M_RQ.
-M_RQ v PQR2_PR;
-*/
-
-/*
 ((s ^ t) ^ s) v (((s ^ t) v s) ^ R00)*  = (((R00 ^ s) v t) ^ s). -- thrm
 
 x < x*.
@@ -235,49 +184,6 @@ x v (q ^ r) < (x v q) /< (x v r)
 ->
 x v (p ^ r) < (x v p) /< (x v r).
 */
-/*
-x^R00 < t --& t ^ R00 = t
-&
-(x v t) /= x = x v <INV>t 
-&
-x < (x v p) /< (x v q)
-->
-((x v <INV>t) v (p ^ q)) ^ ((x v <INV>t) v (p ^ <INV>q)) < x v <INV>t.
-*/
-/*
-X=[p   q   r]
-   =   =   !=     --(t1,t2)
-   =   =   !=     --(t3,t4)
-   ------------------------
-   !=  =   =      --(t1,t5)
-   ------------------------
-   !=  =   !=     --(t2,t5)
-   ------------------------
-   !=  !=  =      --(t2,t4)
-   !=  !=  =      --(t3,t5)
-   !=  !=  =      --(t1,t3)
-   ------------------------
-   !=  !=  !=     --(t4,t5)
-   !=  !=  !=     --(t2,t3)
-   !=  !=  !=     --(t1,t4)
-;*/
-
-/*X=[p   q   r]
-   0   a   0
-   0   a   1
-   0   b   0
-   0   b   1
-   1   a   0
-;
-X#R00;
-X#[p];
-X#[q];
-X#[r];
-X#[p q];
-X#[q r];
-X#[r p];
-X#R10;
-X=(X v [p r]) ^ (X v [q r]) ^ (X v [p q]).*/
 
 /*y = [p  r]
      0  0
@@ -329,25 +235,6 @@ x v (y /= y) = y /= y.
 "i=2..N" - (("i=2..N" ^ "j=2..SQRT(N)" ^ "k*j=i" ^ "int k" ^ "1 < k") v [i]);
 */
 
---"[q r]a0b0" ⊗ "[q r]a0b0a1";
 
-/*x ⊗ y = y ⊗ x.
---x ⊗ (y ⊗ z) = (x ⊗ y) ⊗ z.
-x ⊗ (y v z) = (x ⊗ y) v (x ⊗ z).
-x < y -> x ⊗ z < y ⊗ z.
---fail: x ⊗ (y ^ z) = (x ⊗ y) ^ (x ⊗ z).
---fail: x ^ (y ⊗ z) = (x ^ y) ⊗ (x ^  z).
-*/
 
-a v b=R00 &
-b v c=R00 &
-a v c=R00
-->
-(a^c)v(((a^b)v r)^( (b^c)v( ((a^c)v r)
-^
-((a^b)v ( ((b^c)v r)^( (a^c)v(((b^c)v r)^((a^b)v r)) ) )) ) ) )=
-(a^c)v( ((a^b)v ( ((b^c)v r)^( (a^c)v(((b^c)v r)^((a^b)v r)) ) ))
-^
-( (b^c)v(((a^b)v r)^((a^c)v r)) ) )
-.
 

@@ -34,24 +34,6 @@
 --(x /< y)  = <NOT>(((<NOT>(y) ^ x) v <INV>((R00 ^ (y v x))))). 
 --(x /< y)  = <NOT>(((<NOT>(y) ^ x) <and> <INV>((y v x)))).
 
-/*
-x <plus> y = expr. 
-x <plus> R00 = x.
-x <plus> y = y <plus> x.
-x <plus> (y <plus> z) = (x <plus> y) <plus> z.
-x <mult> (y <plus> z) = (x <mult> y) <plus> (x <mult> z).
-*/
-
-/*x <mult> y = expr. 
--- <mult> != ^.
-x <mult> R11 = x.
---x <mult> R00 = R00.
-
-x <mult> y = y <mult> x.
-x <mult> (y <mult> z) = (x <mult> y) <mult> z.
-
-x <mult> (y v z) = (x <mult> y) v (x <mult> z).
-*/
 
 --(x /! x) ^ x = expr.  -- = (<NOT>((<INV>((<NOT>(x) ^ <INV>(x))) ^ x)) ^ x).
 --(x /< x) <and> y= expr.  -- = <INV>(y) v y
@@ -96,13 +78,27 @@ x <mult> (y v z) = (x <mult> y) v (x <mult> z).
 --(x ^ (y v z)) = ((x ^ y) v (x ^ z)) v expr.
 
 
-/*x ^ y ^ z != R00 ^ r |
-x v y != R00 |
-x v z != R00 |
-y v z != R00 |
-(r = (r v (x ^ y)) ^ (r v (x ^ z)) 
-<->
-A(x,y,z,r))
-.*/
+/*
+x <plus> y = expr. 
+x <plus> R00 = x.
+x <plus> y = y <plus> x.
+x <plus> (y <plus> z) = (x <plus> y) <plus> z.
+x <mult> (y <plus> z) = (x <mult> y) <plus> (x <mult> z).
+*/
 
-(x ^ R00) v (x ^ <NOT>((x ^ R00) v y)) = expr.
+/*x <mult> y = expr. 
+-- <mult> != ^.
+x <mult> R11 = x.
+--x <mult> R00 = R00.
+
+x <mult> y = y <mult> x.
+x <mult> (y <mult> z) = (x <mult> y) <mult> z.
+
+x <mult> (y v z) = (x <mult> y) v (x <mult> z).
+*/
+
+--F^R00 = x^y 
+-->
+(FD(F,x,y) <-> F#x < F#y).
+
+--(((F v (x^y^R00)) < (((x /^ (F v (x^y^R00))) v (F v (x^y^R00))) /1 (F v (x^y^R00))))) <-> FD(F,x,y).

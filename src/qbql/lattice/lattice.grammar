@@ -188,6 +188,7 @@ proposition:
           |  expr '!' '=' expr
           |  expr '<' '~' expr
           |  expr '>' '~' expr
+          --|  expr '#' '>' expr                -- functional dependency (expressed via partitions #)
           |  oper '!' '=' oper
           |  "not to confuse with userOper"   -- heuristic optimization fail
 ;

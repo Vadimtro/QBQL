@@ -1,6 +1,40 @@
-include "c:/users/dim/git/qbql/src/qbql/apps/db/Figure1.db"; 
---include "c:/users/dim/git/qbql/src/qbql/apps/db/DependencyTheory.db";
---include udf.def; 
+--include "c:/users/dim/git/qbql/src/qbql/apps/db/Figure1.db"; 
+include "c:/users/dim/git/qbql/src/qbql/apps/db/DependencyTheory.db";
+include udf.def; 
+
+/*
+M_PQ=[p  q] v MaierP137;
+M_PR=[p  r] v MaierP137;
+M_PQjM_PR = M_PQ ^ M_PR;
+M_RQ=[r  q] v MaierP137;
+M_PQjM_RQ = M_PQ ^ M_RQ;
+M_PRjM_RQ = M_PR ^ M_RQ;
+
+MaierP137 = M_PQ ^ M_PRjM_RQ.
+MaierP137 = M_PR ^ M_PQjM_RQ.
+MaierP137 = 
+(M_PQ v M_PQjM_RQ) ^ 
+(M_PQ v M_PR) ^
+(M_PRjM_RQ v M_PR) ^
+(M_PRjM_RQ v M_PQjM_RQ). 
+M_PQ v M_PQjM_RQ = M_PQ.
+M_PQ v M_PR;
+M_PRjM_RQ v M_PR = M_PR.
+PQR2 = M_PRjM_RQ v M_PQjM_RQ;
+--Q v [p  q];
+--Q v [p  r];
+PQR2_PQ = PQR2 v [p  q];
+PQR2_PR = PQR2 v [p  r];
+M_RQ = PQR2 v [r  q].
+PQR2 = PQR2_PQ ^ M_RQ.
+PQR2 = M_RQ ^ PQR2_PR.
+--PQR2 = PQR2_PQ ^ PQR2_PR.
+PQR2_PQ v M_RQ;
+PQR2_PQ v PQR2_PR;
+M_RQ v M_RQ = M_RQ.
+M_RQ v PQR2_PR;
+*/
+
 
 /*
 x < y <-> x^y =x. 
@@ -39,21 +73,150 @@ R2 ^ ((x ^ z) v r) < R2 ^ ((y ^ z) v r).
 (r ⊗ r)  ^ ((x ^ z) v r) < (r ⊗ r)  ^ ((y ^ z) v r).
 */
 
-
---a v b=[] &
---b v c=[] &
-/*a v c=[] 
-->*/
-(a^c)v(((a^b)v r)^( (b^c)v( ((a^c)v r)
-^
-((a^b)v ( ((b^c)v r)^( (a^c)v(((b^c)v r)^((a^b)v r)) ) )) ) ) )
-= 
-(a^c)v( ((a^b)v ( ((b^c)v r)^( (a^c)v(((b^c)v r)^((a^b)v r)) ) ))
-^ 
-( (b^c)v(((a^b)v r)^((a^c)v r)) ) )
-.
-
 /*(z /^ pEp1) /^ pEp1 = z
 ->
 ((z ^ (z /^ pEp1)) v (pEp1 ^ [])) < pEp1.*/
 
+/*
+x^R00 < t --& t ^ R00 = t
+&
+(x v t) /= x = x v <INV>t 
+&
+x < (x v p) /< (x v q)
+->
+((x v <INV>t) v (p ^ q)) ^ ((x v <INV>t) v (p ^ <INV>q)) < x v <INV>t.
+*/
+/*
+X=[p   q   r]
+   =   =   !=     --(t1,t2)
+   =   =   !=     --(t3,t4)
+   ------------------------
+   !=  =   =      --(t1,t5)
+   ------------------------
+   !=  =   !=     --(t2,t5)
+   ------------------------
+   !=  !=  =      --(t2,t4)
+   !=  !=  =      --(t3,t5)
+   !=  !=  =      --(t1,t3)
+   ------------------------
+   !=  !=  !=     --(t4,t5)
+   !=  !=  !=     --(t2,t3)
+   !=  !=  !=     --(t1,t4)
+;*/
+
+/*X=[p   q   r]
+   0   a   0
+   0   a   1
+   0   b   0
+   0   b   1
+   1   a   0
+;
+X#R00;
+X#[p];
+X#[q];
+X#[r];
+X#[p q];
+X#[q r];
+X#[r p];
+X#R10;
+X=(X v [p r]) ^ (X v [q r]) ^ (X v [p q]).*/
+
+--"[q r]a0b0" ⊗ "[q r]a0b0a1";
+
+/*x ⊗ y = y ⊗ x.
+--x ⊗ (y ⊗ z) = (x ⊗ y) ⊗ z.
+x ⊗ (y v z) = (x ⊗ y) v (x ⊗ z).
+x < y -> x ⊗ z < y ⊗ z.
+--fail: x ⊗ (y ^ z) = (x ⊗ y) ^ (x ⊗ z).
+--fail: x ^ (y ⊗ z) = (x ^ y) ⊗ (x ^  z).
+*/
+
+
+/*
+c < a <"->"> b 
+-> 
+c ^ a < b.
+*/
+
+--A = "p->q" v [p q];
+--B = A v [p q] 0 c;
+--C = "p->q";
+--D = C v [p q r] 0 c 0;
+
+
+--A;
+--B;
+--C;
+--D;
+
+x <FD> y = x <"->"> y.
+--x <FD> y = x /< y.
+
+
+x v y = R00 &
+x^R00=x & y^R00=y & F^R00 = x^y 
+->
+((F < ((y v F) /1 F)) <-> F#x < F#y).
+
+
+/*_*/
+(((F v (x^y^R00)) < (((x /^ (F v (x^y^R00))) v (F v (x^y^R00))) /1 (F v (x^y^R00)))) <-> F#x < F#y).
+
+/*_*/x^R00=x & y^R00=y & F^R00 = x^y 
+->
+(((x v F) < ((x /0 F) /1 F)) <-> F#x < F#y).
+
+
+--(A v [q]) <FD> A;
+--(B v [q]) <FD> B;
+--(C v [q]) <FD> C;
+--(D v [q]) <FD> D;
+
+--x=[p];   
+--y=[q r];
+--F= MVD;
+--(F v (x^y)) <FD> (F v y);
+
+/*
+
+-- Heath trm 
+x^R00=x &
+y^R00=y &
+z^R00=z &
+(F v (x^y)) <FD> (F v y) = x ->
+(F v (x^y)) ^ (F v (x^z)) = F v (x^y^z).
+
+-- Armstrong reflexivity 
+x^R00=x &
+y^R00=y &
+z^R00=z &
+(F v (x^y)) <FD> (F v y) = x ->
+(F v (x^y^z)) <FD> (F v (y^z)) = x ^ z.
+--(F v (x^y^z)) <FD> (F v (y^z)) = x ^ z.
+
+-- Armstrong augmentation 
+x^R00=x &
+y^R00=y &
+z^R00=z &
+--x v y = R00 &
+--y v z = R00 &
+--x v z = R00 &
+--F^R00 < x^y^z &
+(F v (x^y)) <FD> (F v y) = x ->
+(F v (x^y^z)) <FD> (F v (y^z)) = x^z.
+
+-- Armstrong transitivity 
+--x^R00=x &
+--y^R00=y &
+--z^R00=z &
+--x v y = R00 &
+--y v z = R00 &
+--x v z = R00 &
+--F^R00=x^y^z &
+(F v (x^y)) <FD> (F v y) = x &
+(F v (y^z)) <FD> (F v z) = y ->
+(F v (x^z)) <FD> (F v z) = x.
+*/
+
+
+x /< R00 = <NOT> x.

@@ -20,7 +20,6 @@ x <REMOVE> y = x v y`. -- project relation x onto all attributes except those in
         
 -------------------------- More fancy operations -----------------------  
 
---x <"->"> y = y <OR> <NOT>x.    
 x <"->"> y = (y v x) /< y. 
 x <"1"> y = (x /1 y) ^ x ^ y. 
         
@@ -43,8 +42,7 @@ x @/> y = ( (x v y)` @* (x'^ y) )'.
 --<INV> x  = (R11 ^ x) v x`. 
 <INV>x = (R11 /^ x). -- faster (Test.prg 13156 ms vs. 14156)
 
-
-<COMPL>x = <NOT>(<INV>x).
+<COMPL>x = <INV>(<NOT>x).
 
 <CP_CLOSE> x  = x*. -- alias for expression generator where unary operators are prefixed
 <EQ_CLOSE> x  = x+. -- 
@@ -55,7 +53,7 @@ x <Decomp> y = (x ^ <INV>y) v (x ^ <NOT>y).
 
 --x <plus> y = ....
 --x <mult> y = <NOT>((<NOT>(y) v <NOT>(x))).
-x <mult> y = x <"and"> y.
+--x <mult> y = x <"and"> y.
 
 -- generalized negation
 x <gn> y = (<NOT>x ^ <INV>y) v (<INV>x ^ <NOT>y).
@@ -107,4 +105,6 @@ c c c
 
 <sq> x = x ⊗ x.
 
+<hCompl> x = <INV>((R00 ^ x)).
+<mCompl> x = <INV>((R11 v x)).      
 

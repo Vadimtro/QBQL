@@ -2,6 +2,7 @@ package qbql.lang.parse;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -62,7 +63,7 @@ public class Program {
     private static int statement = -1;
     private static int string_literal = -1;
 	public static Earley getArboriParser() throws IOException  {
-		Set<RuleTuple> rules = getRules();
+		Collection<RuleTuple> rules = getRules();
         //RuleTuple.printRules(rules);
         Earley testParser = new Earley(rules) {
 			@Override
